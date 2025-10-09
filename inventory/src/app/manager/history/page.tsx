@@ -1,0 +1,391 @@
+// activity-history.tsx
+
+"use client"
+
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from '../sidebar';
+import { History, Download, Search, Filter, Calendar } from 'lucide-react';
+import './history.css';
+
+interface User {
+  id: number;
+  username: string;
+  role: 'manager' | 'barista';
+}
+
+interface Transaction {
+  id: number;
+  item_name: string;
+  transaction_type: 'usage' | 'restock' | 'adjustment' | 'update' | 'delete' | 'added';
+  quantity: number;
+  unit_name: string;
+  notes: string;
+  created_at: string;
+  username: string;
+}
+
+const ActivityHistory = () => {
+  const [activeTab, setActiveTab] = useState('history');
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activities, setActivities] = useState<Transaction[]>([]);
+  const [filteredActivities, setFilteredActivities] = useState<Transaction[]>([]);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
+  const [users, setUsers] = useState<string[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('cafestock_token');
+    const userStr = localStorage.getItem('cafestock_user');
+
+    if (!token || !userStr) {
+      window.location.href = '/';
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(userStr);
+      setUser(userData);
+      
+      if (userData.role !== 'manager') {
+        window.location.href = `/${userData.role}/dashboard/`;
+        return;
+      }
+
+      fetchActivities(token);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      window.location.href = '/';
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [activities, searchQuery, selectedUser, selectedType, dateRange]);
+
+  const fetchActivities = async (token: string) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/inventory/transactions/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data: Transaction[] = await response.json();
+        setActivities(data);
+        
+        // Extract unique usernames
+        const uniqueUsers = Array.from(new Set(data.map(t => t.username).filter(Boolean)));
+        setUsers(uniqueUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...activities];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(activity => 
+        activity.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        activity.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        activity.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // User filter
+    if (selectedUser !== 'all') {
+      filtered = filtered.filter(activity => activity.username === selectedUser);
+    }
+
+    // Type filter
+    if (selectedType !== 'all') {
+      filtered = filtered.filter(activity => activity.transaction_type === selectedType);
+    }
+
+    // Date range filter
+    if (dateRange !== 'all') {
+      const now = new Date();
+      const cutoffDate = new Date();
+      
+      switch (dateRange) {
+        case 'today':
+          cutoffDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          cutoffDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          cutoffDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      filtered = filtered.filter(activity => 
+        new Date(activity.created_at) >= cutoffDate
+      );
+    }
+
+    setFilteredActivities(filtered);
+  };
+
+  const exportHistory = () => {
+    const csvContent = [
+      ['Date', 'Time', 'User', 'Action', 'Item', 'Quantity', 'Unit', 'Notes'],
+      ...filteredActivities.map(activity => [
+        formatDate(activity.created_at),
+        formatTime(activity.created_at),
+        activity.username,
+        activity.transaction_type,
+        activity.item_name,
+        activity.quantity,
+        activity.unit_name,
+        activity.notes || ''
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `activity-history-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  const getTransactionBadge = (type: string) => {
+    const badges = {
+      usage: { color: '#dc2626', label: 'Usage' },
+      restock: { color: '#16a34a', label: 'Restock' },
+      adjustment: { color: '#2563eb', label: 'Adjustment' },
+      update: { color: '#e1bc42', label: 'Update' },
+      delete: { color: '#9ca3af', label: 'Delete' },
+      added: { color: '#775932', label: 'Add' }
+    };
+    
+    const badge = badges[type as keyof typeof badges] || badges.adjustment;
+    
+    return (
+      <span className="transaction-badge" style={{ backgroundColor: badge.color }}>
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getTransactionText = (transaction: Transaction) => {
+    const type = transaction.transaction_type;
+    const qty = transaction.quantity;
+    const item = transaction.item_name;
+    const unit = transaction.unit_name;
+    
+    if (type === 'usage') {
+      return `Used ${qty} ${unit}(s) of ${item}`;
+    } else if (type === 'restock') {
+      return `Restocked ${qty} ${unit}(s) of ${item}`;
+    } else if (type === 'update') {
+      return `Updated ${item} to ${qty} ${unit}(s)`;
+    } else if (type === 'delete') {
+      return `Deleted ${qty} ${unit}(s) of ${item}`;
+    } else if (type === 'added') {
+      return `Added new item: ${item}`;
+    } else {
+      return `Adjusted ${item} stock by ${qty} ${unit}(s)`;
+    }
+  };
+
+  if (isLoading || !user) {
+    return (
+      <div className="activity-container">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          fontSize: '18px',
+          color: '#666'
+        }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="activity-container">
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      
+      <div className="activity-content">
+        <div className="activity-inner">
+          <div className="activity-header">
+            <div>
+              <h1 className="activity-title">Activity History</h1>
+              <p className="activity-subtitle">Track all inventory changes and user activities</p>
+            </div>
+            <button 
+              className="export-button"
+              onClick={exportHistory}
+            >
+              <Download className="button-icon" />
+              Export History
+            </button>
+          </div>
+
+          <div className="filters-card">
+            <div className="filters-header">
+              <Filter className="filter-icon" />
+              <h3 className="filters-title">Filters</h3>
+            </div>
+            
+            <div className="filters-grid">
+              <div className="filter-group">
+                <label className="filter-label">Search</label>
+                <div className="search-input-wrapper">
+                  <Search className="search-icon" />
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search activities..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">User</label>
+                <select
+                  className="filter-select"
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                >
+                  <option value="all">All Users</option>
+                  {users.map(username => (
+                    <option key={username} value={username}>{username}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">Action Type</label>
+                <select
+                  className="filter-select"
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                >
+                  <option value="all">All Types</option>
+                  <option value="usage">Usage</option>
+                  <option value="restock">Restock</option>
+                  <option value="added">Add</option>
+                  <option value="update">Update</option>
+                  <option value="delete">Delete</option>
+                  <option value="adjustment">Adjustment</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">Date Range</label>
+                <select
+                  className="filter-select"
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="results-info">
+            Showing {filteredActivities.length} of {activities.length} activities
+          </div>
+
+          <div className="timeline-card">
+            <div className="timeline-header">
+              <History className="timeline-icon" />
+              <h2 className="timeline-title">Activity Timeline</h2>
+            </div>
+            <p className="timeline-subtitle">Complete history of all inventory activities</p>
+            
+            <div className="timeline-list">
+              {filteredActivities.length === 0 ? (
+                <p className="no-activities">
+                  No activities found matching your filters
+                </p>
+              ) : (
+                filteredActivities.map((activity) => (
+                  <div key={activity.id} className="timeline-item">
+                    <div className="timeline-marker">
+                      <div className="timeline-dot"></div>
+                    </div>
+                    
+                    <div className="timeline-content">
+                      <div className="timeline-main">
+                        <div className="timeline-info">
+                          {getTransactionBadge(activity.transaction_type)}
+                          <span className="timeline-date">{formatDate(activity.created_at)}</span>
+                          <span className="timeline-time">{formatTime(activity.created_at)}</span>
+                        </div>
+                        
+                        <h3 className="timeline-action">{getTransactionText(activity)}</h3>
+                        
+                        <div className="timeline-meta">
+                          <span className="meta-label">User:</span>
+                          <span className="meta-value">{activity.username}</span>
+                          <span className="meta-separator"></span>
+                          <span className="meta-label">Item:</span>
+                          <span className="meta-value">{activity.item_name}</span>
+                          <span className="meta-separator"></span>
+                          <span className="meta-label">Quantity:</span>
+                          <span className="meta-value">{activity.quantity} {activity.unit_name}</span>
+                        </div>
+                        
+                        {activity.notes && (
+                          <div className="timeline-notes">
+                            <span className="notes-label">Notes:</span>
+                            <span className="notes-text">{activity.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ActivityHistory;
