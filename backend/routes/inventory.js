@@ -115,6 +115,37 @@ router.get('/recent-activity-all', authenticateToken, async (req, res) => {
   }
 });
 
+// Get all transactions (for manager only)
+router.get('/transactions/all', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    const [transactions] = await db.query(`
+      SELECT 
+        t.id,
+        i.item_name,
+        un.name AS unit_name,
+        t.transaction_type,
+        t.quantity,
+        t.notes,
+        t.created_at,
+        u.username
+      FROM transactions t
+      LEFT JOIN items i ON t.item_id = i.id
+      LEFT JOIN units un ON i.unit_id = un.id
+      LEFT JOIN users u ON t.user_id = u.id
+      ORDER BY t.created_at DESC
+    `);
+
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching all transactions:', error);
+    res.status(500).json({ error: 'Server error fetching transactions' });
+  }
+});
+
 // Get single inventory item by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {

@@ -21,6 +21,7 @@ const Profile = () => {
   
   // Form state
   const [currentPassword, setCurrentPassword] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -65,6 +66,7 @@ const Profile = () => {
       if (response.ok) {
         const data = await response.json();
         setUser(data);
+        setNewUsername(data.username);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -130,6 +132,67 @@ const Profile = () => {
     setNewPassword('');
     setConfirmPassword('');
     setMessage('');
+  };
+
+  const handleSaveChanges = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+
+    const token = localStorage.getItem('cafestock_token');
+    if (!token || !user) return;
+
+    try {
+      // 1️⃣ Update username
+      const usernameRes = await fetch(`http://localhost:3001/api/users/${user.id}/username`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: newUsername })
+      });
+
+      if (!usernameRes.ok) {
+        const err = await usernameRes.json();
+        setMessage(err.error || 'Failed to update username');
+        setMessageType('error');
+        return;
+      }
+
+      // 2️⃣ Update password (only if provided)
+      if (currentPassword && newPassword) {
+        if (newPassword !== confirmPassword) {
+          setMessage('New passwords do not match');
+          setMessageType('error');
+          return;
+        }
+
+        const passwordRes = await fetch(`http://localhost:3001/api/users/${user.id}/password`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        if (!passwordRes.ok) {
+          const err = await passwordRes.json();
+          setMessage(err.error || 'Failed to update password');
+          setMessageType('error');
+          return;
+        }
+      }
+
+      setMessage('Profile updated successfully');
+      setMessageType('success');
+      setIsEditing(false);
+      fetchUserProfile(token, user.id); // refresh displayed data
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setMessage('An error occurred while saving changes');
+      setMessageType('error');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -242,15 +305,26 @@ const Profile = () => {
                     onClick={() => setIsEditing(true)}
                   >
                     <Lock className="button-icon" />
-                    Change Password
+                    Edit Profile
                   </button>
                 </div>
               </>
             ) : (
-              <form onSubmit={handlePasswordChange} className="password-form">
+              <form onSubmit={handleSaveChanges} className="password-form">
                 <div className="form-section">
                   <h3 className="form-section-title">Change Password</h3>
                   
+                  <div className="form-group">
+                    <label className="form-label">Username</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Enter new username"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                    />
+                  </div>
+
                   <div className="form-group">
                     <label className="form-label">Current Password</label>
                     <div className="password-input-wrapper">
@@ -260,7 +334,6 @@ const Profile = () => {
                         placeholder="Enter current password"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        required
                       />
                       <button
                         type="button"
@@ -282,7 +355,6 @@ const Profile = () => {
                           placeholder="Enter new password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          required
                         />
                         <button
                           type="button"
@@ -303,7 +375,6 @@ const Profile = () => {
                           placeholder="Confirm new password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          required
                         />
                         <button
                           type="button"

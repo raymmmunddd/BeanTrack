@@ -17,7 +17,9 @@ interface User {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     // Get user data 
@@ -35,7 +37,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     }
   }, []);
 
-  const handleSignOut = () => {
+  useEffect(() => {
+    // Handle responsive behavior
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMobileOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleSignOutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmSignOut = () => {
     localStorage.removeItem('cafestock_token');
     localStorage.removeItem('cafestock_user');
     window.location.href = '/';
@@ -43,8 +61,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
   const handleNavigation = (itemId: string) => {
     setActiveTab(itemId);
+    setIsMobileOpen(false);
     
-    // Navigate to the corresponding page
     if (!user) return;
     
     const basePath = `/${user.role}`;
@@ -76,6 +94,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileOpen(!isMobileOpen);
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'inventory', label: 'Inventory', icon: Package },
@@ -96,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             </div>
             {!isCollapsed && (
               <div className="brand-info">
-                <h1 className="brand-name">CafeStock</h1>
+                <h1 className="brand-name">Beantrack</h1>
               </div>
             )}
           </div>
@@ -106,63 +128,125 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   }
 
   return (
-    <div className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <div className="sidebar-header">
-        <div className="sidebar-brand">
-          <div className="brand-logo">
-            <Coffee className="logo-icon" />
-          </div>
-          {!isCollapsed && (
-            <div className="brand-info">
-              <h1 className="brand-name">CafeStock</h1>
-              <div className="brand-meta">
-                <span style={{ textTransform: 'capitalize' }}>{user.role}</span>
-                <span className="meta-dot"></span>
-                <span>{user.username}</span>
-              </div>
+    <>
+      {/* Mobile Menu Button */}
+      <button 
+        className="mobile-menu-button"
+        onClick={toggleMobileMenu}
+        aria-label="Toggle menu"
+      >
+        <Menu className="mobile-menu-icon" />
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="mobile-overlay"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      <div className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''} ${isMobileOpen ? 'sidebar-mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <div className="brand-logo">
+              <Coffee className="logo-icon" />
             </div>
+            {!isCollapsed && (
+              <div className="brand-info">
+                <h1 className="brand-name">BeanTrack</h1>
+                <div className="brand-meta">
+                  <span style={{ textTransform: 'capitalize' }}>{user.role}</span>
+                  <span className="meta-dot"></span>
+                  <span>{user.username}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="collapse-button desktop-only"
+          >
+            {isCollapsed ? <Menu className="collapse-icon" /> : <X className="collapse-icon" />}
+          </button>
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            className="collapse-button mobile-only"
+          >
+            <X className="collapse-icon" />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          {!isCollapsed && (
+            <p className="nav-label">Navigation</p>
           )}
+          <div className="nav-items">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigation(item.id)}
+                  className={`nav-item ${activeTab === item.id ? 'nav-item-active' : ''} ${isCollapsed ? 'nav-item-collapsed' : ''}`}
+                  title={isCollapsed ? item.label : ''}
+                >
+                  <Icon className="nav-icon" />
+                  {!isCollapsed && <span>{item.label}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button 
+            onClick={handleSignOutClick}
+            className={`signout-button ${isCollapsed ? 'signout-button-collapsed' : ''}`}
+            title={isCollapsed ? 'Sign Out' : ''}
+          >
+            <LogOut className="signout-icon" />
+            {!isCollapsed && <span>Sign Out</span>}
+          </button>
         </div>
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="collapse-button"
-        >
-          {isCollapsed ? <Menu className="collapse-icon" /> : <X className="collapse-icon" />}
-        </button>
       </div>
 
-      <nav className="sidebar-nav">
-        {!isCollapsed && (
-          <p className="nav-label">Navigation</p>
-        )}
-        <div className="nav-items">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigation(item.id)}
-                className={`nav-item ${activeTab === item.id ? 'nav-item-active' : ''} ${isCollapsed ? 'nav-item-collapsed' : ''}`}
-                title={isCollapsed ? item.label : ''}
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="modal-content logout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Confirm Sign Out</h3>
+              <button 
+                className="modal-close-button"
+                onClick={() => setShowLogoutModal(false)}
               >
-                <Icon className="nav-icon" />
-                {!isCollapsed && <span>{item.label}</span>}
+                <X size={20} />
               </button>
-            );
-          })}
-        </div>
-      </nav>
+            </div>
+            
+            <div className="modal-body">
+              <p className="logout-warning">Are you sure you want to sign out?</p>
+              <p className="logout-subtext">You will need to log in again to access your account.</p>
+            </div>
 
-      <div className="sidebar-footer">
-        <button 
-          onClick={handleSignOut}
-          className={`signout-button ${isCollapsed ? 'signout-button-collapsed' : ''}`}
-          title={isCollapsed ? 'Sign Out' : ''}
-        >
-          <LogOut className="signout-icon" />
-          {!isCollapsed && <span>Sign Out</span>}
-        </button>
-      </div>
-    </div>
+            <div className="modal-footer">
+              <button 
+                className="modal-button cancel-button"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="modal-button logout-confirm-button"
+                onClick={confirmSignOut}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

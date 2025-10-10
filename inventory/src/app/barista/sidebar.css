@@ -142,7 +142,7 @@
 
 .collapse-button {
   color: var(--gray-600);
-  padding: 0.375rem;
+  padding: .75rem;
   border-radius: 0.5rem;
   transition: background-color 0.2s;
   flex-shrink: 0;
@@ -267,51 +267,178 @@
   color: var(--primary-light);
 }
 
+/* Logout Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background-color: var(--white);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 90%;
+  max-width: 400px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.logout-modal {
+  max-width: 400px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.modal-close-button {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 0.375rem;
+  background-color: transparent;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-button:hover {
+  background-color: var(--gray-100);
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.logout-warning {
+  color: var(--text);
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+  margin-top: 0;
+}
+
+.logout-subtext {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.modal-button {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.cancel-button {
+  background-color: var(--white);
+  color: var(--gray-600);
+  border: 1px solid var(--gray-300);
+}
+
+.cancel-button:hover {
+  background-color: var(--gray-100);
+  color: var(--text);
+}
+
+.logout-confirm-button {
+  background-color: #dc2626;
+  color: var(--white);
+}
+
+.logout-confirm-button:hover {
+  background-color: #b91c1c;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-  /* Show mobile menu button */
   .mobile-menu-button {
     display: flex;
   }
 
-  /* Show overlay when mobile menu is open */
   .mobile-overlay {
     display: block;
   }
 
-  /* Hide sidebar by default on mobile */
   .sidebar {
     transform: translateX(-100%);
     width: 16rem;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   }
 
-  /* Show sidebar when mobile menu is open */
   .sidebar-mobile-open {
     transform: translateX(0);
   }
 
-  /* Force sidebar to be expanded on mobile */
   .sidebar.sidebar-collapsed {
     width: 16rem;
   }
 
-  /* Hide desktop collapse button on mobile */
   .desktop-only {
     display: none;
   }
 
-  /* Show mobile close button */
   .mobile-only {
     display: flex;
   }
 
-  /* Ensure brand info is always visible on mobile */
   .sidebar .brand-info {
     display: block;
   }
 
-  /* Reset collapsed styles on mobile */
   .sidebar .nav-item-collapsed {
     justify-content: flex-start;
   }
@@ -330,7 +457,6 @@
   }
 }
 
-/* Tablets and smaller desktops */
 @media (max-width: 1024px) and (min-width: 769px) {
   .sidebar {
     width: 14rem;

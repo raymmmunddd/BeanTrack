@@ -1,4 +1,9 @@
 /* Team Management CSS */
+
+body {
+  background-color: #f1f0ee;
+}
+
 create-button:hover {
   background-color: #5d4426;
 }
@@ -6,6 +11,27 @@ create-button:hover {
 .create-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.edit-button {
+  padding: 0.625rem;
+  background-color: transparent;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 0.5rem;
+}
+
+.edit-button:hover {
+  background-color: #f3f4f6;
+  color: #170d03;
+}
+
+.edit-icon {
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 @media (max-width: 768px) {

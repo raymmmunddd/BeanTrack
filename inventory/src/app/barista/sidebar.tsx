@@ -19,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     // Get user data 
@@ -48,7 +49,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmSignOut = () => {
     localStorage.removeItem('cafestock_token');
     localStorage.removeItem('cafestock_user');
     window.location.href = '/';
@@ -56,9 +61,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
   const handleNavigation = (itemId: string) => {
     setActiveTab(itemId);
-    setIsMobileOpen(false); // Close mobile menu on navigation
+    setIsMobileOpen(false);
     
-    // Navigate to the corresponding page
     if (!user) return;
     
     const basePath = `/${user.role}`;
@@ -138,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             </div>
             {!isCollapsed && (
               <div className="brand-info">
-                <h1 className="brand-name">CafeStock</h1>
+                <h1 className="brand-name">BeanTrack</h1>
                 <div className="brand-meta">
                   <span style={{ textTransform: 'capitalize' }}>{user.role}</span>
                   <span className="meta-dot"></span>
@@ -185,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
         <div className="sidebar-footer">
           <button 
-            onClick={handleSignOut}
+            onClick={handleSignOutClick}
             className={`signout-button ${isCollapsed ? 'signout-button-collapsed' : ''}`}
             title={isCollapsed ? 'Sign Out' : ''}
           >
@@ -194,6 +198,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="modal-content logout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Confirm Sign Out</h3>
+              <button 
+                className="modal-close-button"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <p className="logout-warning">Are you sure you want to sign out?</p>
+              <p className="logout-subtext">You will need to log in again to access your account.</p>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="modal-button cancel-button"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="modal-button logout-confirm-button"
+                onClick={confirmSignOut}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

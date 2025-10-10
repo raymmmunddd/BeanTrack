@@ -1,4 +1,4 @@
-/* Manager Inventory CSS */
+/* Inventory CSS */
 
 .status-badge {
   display: inline-flex;
@@ -8,6 +8,10 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+body {
+  background-color: #f1f0ee;
 }
 
 .inventory-content {

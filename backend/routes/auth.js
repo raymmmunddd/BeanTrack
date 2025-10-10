@@ -128,6 +128,12 @@ router.post('/signin', async (req, res) => {
       });
     }
 
+    // Update last login time
+    await db.query(
+      'UPDATE users SET last_login = NOW() WHERE id = ?',
+      [user.id]
+    );
+
     // Check if the role matches
     if (user.role !== role) {
       return res.status(403).json({ 

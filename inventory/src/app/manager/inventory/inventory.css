@@ -1,5 +1,9 @@
 /* Manager Inventory CSS */
 
+body {
+  background-color: #f1f0ee;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

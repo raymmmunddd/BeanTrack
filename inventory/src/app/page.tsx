@@ -185,7 +185,7 @@ export default function CafeStockLogin() {
             <div className="logo-icon logo-icon-primary">
               <Coffee size={36} />
             </div>
-            <h1 className="brand-title">beantrack</h1>
+            <h1 className="brand-title">BeanTrack</h1>
           </div>
 
           <h2 className="tagline">

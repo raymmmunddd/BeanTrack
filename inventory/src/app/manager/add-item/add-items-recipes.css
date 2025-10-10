@@ -1,5 +1,9 @@
 /* Add Items & Recipes CSS */
 
+body {
+  background-color: #f1f0ee;
+}
+
 .add-content {
   padding: 2rem;
   background-color: #f1f0ee;

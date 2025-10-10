@@ -19,7 +19,7 @@ interface Unit {
 
 interface InventoryItem {
   id: number
-  item_name: string
+  name: string
   unit: string
 }
 
@@ -378,7 +378,7 @@ export default function AddItemsRecipes() {
                         <option value="">Select item</option>
                         {inventoryItems.map(item => (
                           <option key={item.id} value={item.id}>
-                            {item.item_name} ({item.unit})
+                            {item.name} ({item.unit})
                           </option>
                         ))}
                       </select>

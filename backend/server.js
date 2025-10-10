@@ -8,6 +8,8 @@ const authRoutes = require('./routes/auth');
 const inventoryRoutes = require('./routes/inventory');
 const usersRouter = require('./routes/users');
 const recipesRouter = require('./routes/recipes');
+const categoriesRoutes = require('./routes/categories');
+const unitsRoutes = require('./routes/units');
 
 const app = express();
 
@@ -20,6 +22,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/users', usersRouter);
 app.use('/api/recipes', recipesRouter);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/units', unitsRoutes);
 
 // Test route
 app.get('/', (req, res) => {

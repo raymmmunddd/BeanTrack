@@ -1,9 +1,7 @@
-// log-usage.tsx
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Coffee, Plus, Minus, Save } from 'lucide-react'
+import { Coffee, Plus, Minus, Save, CheckCircle } from 'lucide-react'
 import { Sidebar } from '../sidebar'
 import './log.css'
 
@@ -41,9 +39,9 @@ export default function LogUsage() {
   const [error, setError] = useState('')
   const [quantities, setQuantities] = useState<{ [key: number]: number }>({})
   const [activeTab, setActiveTab] = useState('log-usage')
-  
-  // Manual entry state
   const [manualItems, setManualItems] = useState<ManualUsageItem[]>([])
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     if (activeView === 'recipes') {
@@ -53,33 +51,26 @@ export default function LogUsage() {
     }
   }, [activeView])
 
-  const formatNumber = (value: number) => {
-    return value % 1 === 0 ? Math.floor(value) : value
-  }
+  const formatNumber = (value: number) => (value % 1 === 0 ? Math.floor(value) : value)
 
   const fetchRecipes = async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('cafestock_token')
       const response = await fetch('http://localhost:3001/api/recipes', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
 
       if (response.ok) {
         const data = await response.json()
         setRecipes(data)
-        // Initialize quantities to 0 for all recipes
         const initialQuantities: { [key: number]: number } = {}
-        data.forEach((recipe: Recipe) => {
-          initialQuantities[recipe.id] = 0
-        })
+        data.forEach((r: Recipe) => (initialQuantities[r.id] = 0))
         setQuantities(initialQuantities)
       } else {
         setError('Failed to load recipes')
       }
-    } catch (err) {
+    } catch {
       setError('Unable to connect to server')
     } finally {
       setLoading(false)
@@ -91,9 +82,7 @@ export default function LogUsage() {
       setLoading(true)
       const token = localStorage.getItem('cafestock_token')
       const response = await fetch('http://localhost:3001/api/inventory', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
 
       if (response.ok) {
@@ -102,7 +91,7 @@ export default function LogUsage() {
       } else {
         setError('Failed to load inventory')
       }
-    } catch (err) {
+    } catch {
       setError('Unable to connect to server')
     } finally {
       setLoading(false)
@@ -128,21 +117,19 @@ export default function LogUsage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          recipe_id: recipeId,
-          servings: quantity
-        })
+        body: JSON.stringify({ recipe_id: recipeId, servings: quantity })
       })
 
       if (response.ok) {
-        // Reset quantity and refresh recipes
         setQuantities(prev => ({ ...prev, [recipeId]: 0 }))
         fetchRecipes()
+        setSuccessMessage('Recipe usage successfully logged!')
+        setShowSuccessModal(true)
       } else {
         const data = await response.json()
         setError(data.error || 'Failed to log usage')
       }
-    } catch (err) {
+    } catch {
       setError('Unable to connect to server')
     }
   }
@@ -190,29 +177,26 @@ export default function LogUsage() {
       if (response.ok) {
         setManualItems([])
         fetchInventoryItems()
+        setSuccessMessage('Manual usage successfully logged!')
+        setShowSuccessModal(true)
       } else {
         const data = await response.json()
         setError(data.error || 'Failed to log usage')
       }
-    } catch (err) {
+    } catch {
       setError('Unable to connect to server')
     }
   }
 
-  if (loading) {
-    return (
-      <div className="loading-message">
-        Loading...
-      </div>
-    )
-  }
+  const closeModal = () => setShowSuccessModal(false)
+
+  if (loading) return <div className="loading-message">Loading...</div>
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="log-usage-content">
-        {/* Header */}
         <div className="log-usage-header">
           <div>
             <h1 className="log-usage-title">Log Usage</h1>
@@ -222,31 +206,24 @@ export default function LogUsage() {
           </div>
         </div>
 
-        {/* Tab Toggle */}
         <div className="view-tabs">
           <button
             onClick={() => setActiveView('recipes')}
             className={`tab-button ${activeView === 'recipes' ? 'active' : ''}`}
           >
-            <Coffee size={20} />
-            Recipes
+            <Coffee size={20} /> Recipes
           </button>
           <button
             onClick={() => setActiveView('manual')}
             className={`tab-button ${activeView === 'manual' ? 'active' : ''}`}
           >
-            <Plus size={20} />
-            Manual Entry
+            <Plus size={20} /> Manual Entry
           </button>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
-        {/* Recipe View */}
+        {/* Recipes */}
         {activeView === 'recipes' && (
           <>
             <h2 className="section-title">Recipe Usage</h2>
@@ -254,14 +231,12 @@ export default function LogUsage() {
               {recipes.map(recipe => (
                 <div key={recipe.id} className="recipe-card">
                   <div className="recipe-header">
-                    <div>
-                      <h3 className="recipe-title">{recipe.name}</h3>
-                    </div>
+                    <h3 className="recipe-title">{recipe.name}</h3>
                   </div>
 
                   <div className="ingredients-section">
                     <p className="ingredients-label">Ingredients per serving:</p>
-                    <p className='ingredient-name'>Auto-deducts ingredients</p>
+                    <p className="ingredient-name">Auto-deducts ingredients</p>
                     <div className="ingredients-list">
                       {recipe.ingredients.map((ing, idx) => (
                         <div key={idx} className="ingredient-item">
@@ -271,7 +246,11 @@ export default function LogUsage() {
                               {formatNumber(ing.quantity)}{ing.unit}
                             </span>
                           </div>
-                          <span className={`ingredient-status ${ing.status === 'low' ? 'status-low' : 'status-in-stock'}`}>
+                          <span
+                            className={`ingredient-status ${
+                              ing.status === 'low' ? 'status-low' : 'status-in-stock'
+                            }`}
+                          >
                             {ing.status === 'low' ? 'Low Stock' : 'In Stock'}
                           </span>
                         </div>
@@ -290,10 +269,12 @@ export default function LogUsage() {
                     <input
                       type="number"
                       value={quantities[recipe.id] || 0}
-                      onChange={(e) => setQuantities(prev => ({
-                        ...prev,
-                        [recipe.id]: Math.max(0, parseInt(e.target.value) || 0)
-                      }))}
+                      onChange={e =>
+                        setQuantities(prev => ({
+                          ...prev,
+                          [recipe.id]: Math.max(0, parseInt(e.target.value) || 0)
+                        }))
+                      }
                       className="quantity-input"
                     />
                     <button
@@ -317,15 +298,11 @@ export default function LogUsage() {
           </>
         )}
 
-        {/* Manual Entry View */}
+        {/* Manual Entry */}
         {activeView === 'manual' && (
           <>
             <div className="manual-header">
               <h2 className="section-title">Manual Usage Entry</h2>
-              <button onClick={addManualItem} className="add-item-button">
-                <Plus size={20} />
-                Add Item
-              </button>
             </div>
 
             {manualItems.length === 0 ? (
@@ -334,8 +311,7 @@ export default function LogUsage() {
                 <p className="empty-title">No items added</p>
                 <p className="empty-subtitle">Add items to log manual usage</p>
                 <button onClick={addManualItem} className="empty-button">
-                  <Plus size={20} />
-                  Add First Item
+                  <Plus size={20} /> Add First Item
                 </button>
               </div>
             ) : (
@@ -362,13 +338,13 @@ export default function LogUsage() {
                             <td>
                               <select
                                 value={item.item_id}
-                                onChange={(e) => updateManualItem(index, 'item_id', e.target.value)}
+                                onChange={e => updateManualItem(index, 'item_id', e.target.value)}
                                 className="table-select"
                               >
                                 <option value="0">Select item...</option>
-                                {inventoryItems.map(invItem => (
-                                  <option key={invItem.id} value={invItem.id}>
-                                    {invItem.name}
+                                {inventoryItems.map(inv => (
+                                  <option key={inv.id} value={inv.id}>
+                                    {inv.name}
                                   </option>
                                 ))}
                               </select>
@@ -380,7 +356,7 @@ export default function LogUsage() {
                               <input
                                 type="number"
                                 value={item.quantity}
-                                onChange={(e) => updateManualItem(index, 'quantity', e.target.value)}
+                                onChange={e => updateManualItem(index, 'quantity', e.target.value)}
                                 className="table-input"
                                 min="0"
                                 step="0.01"
@@ -406,21 +382,30 @@ export default function LogUsage() {
                       className="log-all-button"
                       disabled={manualItems.filter(i => i.item_id > 0 && i.quantity > 0).length === 0}
                     >
-                      <Save size={20} />
-                      Log All Usage
+                      <Save size={20} /> Log All Usage
                     </button>
-                    <button
-                      onClick={addManualItem}
-                      className="add-another-button"
-                    >
-                      <Plus size={20} />
-                      Add Another Item
+                    <button onClick={addManualItem} className="add-another-button">
+                      <Plus size={20} /> Add Another Item
                     </button>
                   </div>
                 </div>
               </div>
             )}
           </>
+        )}
+
+        {/* ✅ Success Modal */}
+        {showSuccessModal && (
+          <div className="modal-overlay" onClick={closeModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <CheckCircle size={64} color="#16a34a" className="modal-icon" />
+              <h2 className="modal-title">Success!</h2>
+              <p className="modal-message">{successMessage}</p>
+              <button className="modal-button" onClick={closeModal}>
+                OK
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
