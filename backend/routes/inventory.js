@@ -24,7 +24,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Get all inventory items with new status logic
+// Get all inventory items with new status logic (exclude soft-deleted)
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const [items] = await db.query(`
@@ -48,6 +48,7 @@ router.get('/', authenticateToken, async (req, res) => {
       FROM items i
       LEFT JOIN categories c ON i.category_id = c.id
       LEFT JOIN units u ON i.unit_id = u.id
+      WHERE i.is_deleted = 0
       ORDER BY i.item_name ASC
     `);
 
@@ -58,7 +59,40 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get recent activity for current user 
+// Get archived items (manager only)
+router.get('/archived', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    const [items] = await db.query(`
+      SELECT 
+        i.id,
+        i.item_name as name,
+        c.name as category,
+        u.name as unit,
+        i.current_stock as current_quantity,
+        i.minimum_stock as min_threshold,
+        i.maximum_stock as max_threshold,
+        i.description,
+        i.deleted_at,
+        DATEDIFF(DATE_ADD(i.deleted_at, INTERVAL 30 DAY), NOW()) as days_until_deletion
+      FROM items i
+      LEFT JOIN categories c ON i.category_id = c.id
+      LEFT JOIN units u ON i.unit_id = u.id
+      WHERE i.is_deleted = 1
+      ORDER BY i.deleted_at DESC
+    `);
+
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching archived items:', error);
+    res.status(500).json({ error: 'Server error fetching archived items' });
+  }
+});
+
+// Get recent activity for current user (exclude deleted items)
 router.get('/recent-activity', authenticateToken, async (req, res) => {
   try {
     const [transactions] = await db.query(`
@@ -73,7 +107,7 @@ router.get('/recent-activity', authenticateToken, async (req, res) => {
       FROM transactions t
       LEFT JOIN items i ON t.item_id = i.id
       LEFT JOIN units un ON i.unit_id = un.id
-      WHERE t.user_id = ?
+      WHERE t.user_id = ? AND (i.is_deleted = 0 OR i.id IS NULL)
       ORDER BY t.created_at DESC
       LIMIT 3;
     `, [req.user.id]);
@@ -85,7 +119,7 @@ router.get('/recent-activity', authenticateToken, async (req, res) => {
   }
 });
 
-// Get recent activity for all users (manager only) 
+// Get recent activity for all users (manager only, exclude deleted items)
 router.get('/recent-activity-all', authenticateToken, async (req, res) => {
   try {
     const [transactions] = await db.query(`
@@ -104,6 +138,7 @@ router.get('/recent-activity-all', authenticateToken, async (req, res) => {
       LEFT JOIN recipes r ON t.recipe_id = r.id
       LEFT JOIN units un ON i.unit_id = un.id
       LEFT JOIN users u ON t.user_id = u.id
+      WHERE (i.is_deleted = 0 OR i.id IS NULL) AND (r.is_deleted = 0 OR r.id IS NULL)
       ORDER BY t.created_at DESC
       LIMIT 3;
     `);
@@ -115,7 +150,7 @@ router.get('/recent-activity-all', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all transactions (for manager only)
+// Get all transactions (for manager only, show all including deleted)
 router.get('/transactions/all', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'manager') {
@@ -146,7 +181,7 @@ router.get('/transactions/all', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single inventory item by ID
+// Get single inventory item by ID (exclude deleted)
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const [items] = await db.query(`
@@ -170,7 +205,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       FROM items i
       LEFT JOIN categories c ON i.category_id = c.id
       LEFT JOIN units u ON i.unit_id = u.id
-      WHERE i.id = ?
+      WHERE i.id = ? AND i.is_deleted = 0
     `, [req.params.id]);
 
     if (items.length === 0) {
@@ -193,7 +228,6 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
     
     const { recipe_id, servings } = req.body;
 
-    // Validation
     if (!recipe_id || !servings || servings <= 0) {
       await connection.rollback();
       return res.status(400).json({ 
@@ -201,7 +235,7 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
       });
     }
 
-    // Get recipe ingredients
+    // Get recipe ingredients (only non-deleted items)
     const [ingredients] = await connection.query(`
       SELECT 
         ri.item_id,
@@ -212,7 +246,7 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
       FROM recipe_ingredients ri
       JOIN items i ON ri.item_id = i.id
       JOIN units u ON i.unit_id = u.id
-      WHERE ri.recipe_id = ?
+      WHERE ri.recipe_id = ? AND i.is_deleted = 0
     `, [recipe_id]);
 
     if (ingredients.length === 0) {
@@ -220,7 +254,6 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Recipe not found or has no ingredients' });
     }
 
-    // Check if enough stock for all ingredients
     const insufficientStock = [];
     for (const ing of ingredients) {
       const requiredQuantity = ing.quantity_required * servings;
@@ -242,7 +275,6 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
       });
     }
 
-    // Deduct stock for each ingredient
     for (const ing of ingredients) {
       const quantityToDeduct = ing.quantity_required * servings;
       await connection.query(`
@@ -251,7 +283,6 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
         WHERE id = ?
       `, [quantityToDeduct, ing.item_id]);
 
-      // Log the transaction
       await connection.query(`
         INSERT INTO transactions 
           (item_id, recipe_id, transaction_type, quantity, user_id, notes)
@@ -290,7 +321,6 @@ router.post('/log-manual-usage', authenticateToken, async (req, res) => {
     
     const { items } = req.body;
 
-    // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
       await connection.rollback();
       return res.status(400).json({ 
@@ -298,7 +328,6 @@ router.post('/log-manual-usage', authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate each item
     for (const item of items) {
       if (!item.item_id || !item.quantity || item.quantity <= 0) {
         await connection.rollback();
@@ -308,14 +337,13 @@ router.post('/log-manual-usage', authenticateToken, async (req, res) => {
       }
     }
 
-    // Check stock availability
     const insufficientStock = [];
     for (const item of items) {
       const [stockCheck] = await connection.query(`
         SELECT item_name, current_stock, u.name as unit
         FROM items i
         JOIN units u ON i.unit_id = u.id
-        WHERE i.id = ?
+        WHERE i.id = ? AND i.is_deleted = 0
       `, [item.item_id]);
 
       if (stockCheck.length === 0) {
@@ -341,7 +369,6 @@ router.post('/log-manual-usage', authenticateToken, async (req, res) => {
       });
     }
 
-    // Deduct stock and log transactions
     for (const item of items) {
       await connection.query(`
         UPDATE items 
@@ -376,7 +403,6 @@ router.post('/', authenticateToken, async (req, res) => {
   const connection = await db.getConnection();
   
   try {
-    // Check if user is manager
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
@@ -385,7 +411,6 @@ router.post('/', authenticateToken, async (req, res) => {
 
     const { item_name, category_id, unit_id, current_stock, minimum_stock, maximum_stock, description } = req.body;
 
-    // Validation
     if (!item_name || !category_id || current_stock === undefined || !unit_id || 
         minimum_stock === undefined || maximum_stock === undefined) {
       await connection.rollback();
@@ -402,7 +427,6 @@ router.post('/', authenticateToken, async (req, res) => {
 
     const itemId = result.insertId;
 
-    // Log transaction for new item
     await connection.query(`
       INSERT INTO transactions 
         (item_id, transaction_type, quantity, user_id, notes)
@@ -444,20 +468,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    // Fetch old item before update
-    const [oldItems] = await connection.query(`SELECT * FROM items WHERE id = ?`, [req.params.id]);
+    const [oldItems] = await connection.query(`SELECT * FROM items WHERE id = ? AND is_deleted = 0`, [req.params.id]);
     if (oldItems.length === 0) {
       await connection.rollback();
       return res.status(404).json({ error: 'Item not found' });
     }
     const oldItem = oldItems[0];
 
-    // Update the item
     const [result] = await connection.query(`
       UPDATE items 
       SET item_name = ?, current_stock = ?, 
           minimum_stock = ?, maximum_stock = ?, description = ?
-      WHERE id = ?
+      WHERE id = ? AND is_deleted = 0
     `, [item_name, current_stock, minimum_stock, maximum_stock, description || null, req.params.id]);
 
     if (result.affectedRows === 0) {
@@ -465,7 +487,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Item not found' });
     }
 
-    // Log a transaction for the update
     await connection.query(`
       INSERT INTO transactions (item_id, transaction_type, quantity, user_id, notes)
       VALUES (?, 'update', ?, ?, ?)
@@ -487,7 +508,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete inventory item (manager only)
+// Soft delete inventory item (manager only) - Archive
 router.delete('/:id', authenticateToken, async (req, res) => {
   const connection = await db.getConnection();
   
@@ -498,33 +519,147 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await connection.beginTransaction();
 
-    // Fetch item before delete
-    const [items] = await connection.query(`SELECT * FROM items WHERE id = ?`, [req.params.id]);
+    const [items] = await connection.query(`SELECT * FROM items WHERE id = ? AND is_deleted = 0`, [req.params.id]);
     if (items.length === 0) {
       await connection.rollback();
       return res.status(404).json({ error: 'Item not found' });
     }
     const item = items[0];
 
-    // Log transaction before deletion
     await connection.query(`
       INSERT INTO transactions (item_id, transaction_type, quantity, user_id, notes)
       VALUES (?, 'delete', ?, ?, ?)
-    `, [req.params.id, item.current_stock, req.user.id, `Item "${item.item_name}" deleted from inventory`]);
+    `, [req.params.id, item.current_stock, req.user.id, `Item "${item.item_name}" archived`]);
 
-    // Delete item
-    const [result] = await connection.query('DELETE FROM items WHERE id = ?', [req.params.id]);
-    if (result.affectedRows === 0) {
+    await connection.query(`
+      UPDATE items 
+      SET is_deleted = 1, deleted_at = NOW() 
+      WHERE id = ?
+    `, [req.params.id]);
+
+    await connection.commit();
+    res.json({ message: 'Item archived successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error archiving inventory item:', error);
+    res.status(500).json({ error: 'Server error archiving item' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Restore archived item (manager only)
+router.post('/:id/restore', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    await connection.beginTransaction();
+
+    const [items] = await connection.query(`SELECT * FROM items WHERE id = ? AND is_deleted = 1`, [req.params.id]);
+    if (items.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ error: 'Item not found' });
+      return res.status(404).json({ error: 'Archived item not found' });
+    }
+    const item = items[0];
+
+    await connection.query(`
+      UPDATE items 
+      SET is_deleted = 0, deleted_at = NULL 
+      WHERE id = ?
+    `, [req.params.id]);
+
+    await connection.query(`
+      INSERT INTO transactions (item_id, transaction_type, quantity, user_id, notes)
+      VALUES (?, 'restock', ?, ?, ?)
+    `, [req.params.id, item.current_stock, req.user.id, `Item "${item.item_name}" restored from archive`]);
+
+    await connection.commit();
+    res.json({ message: 'Item restored successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error restoring inventory item:', error);
+    res.status(500).json({ error: 'Server error restoring item' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Permanently delete archived item (manager only)
+router.delete('/:id/permanent', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    await connection.beginTransaction();
+
+    const [items] = await connection.query(`SELECT * FROM items WHERE id = ? AND is_deleted = 1`, [req.params.id]);
+    if (items.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Archived item not found' });
+    }
+    const item = items[0];
+
+    await connection.query(`
+      INSERT INTO transactions (item_id, transaction_type, quantity, user_id, notes)
+      VALUES (?, 'delete', ?, ?, ?)
+    `, [req.params.id, item.current_stock, req.user.id, `Item "${item.item_name}" permanently deleted from archive`]);
+
+    await connection.query(`DELETE FROM items WHERE id = ?`, [req.params.id]);
+
+    await connection.commit();
+    res.json({ message: 'Item permanently deleted' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error permanently deleting item:', error);
+    res.status(500).json({ error: 'Server error permanently deleting item' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Auto-cleanup archived items older than 30 days (cron job endpoint)
+router.post('/cleanup-archived', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    await connection.beginTransaction();
+
+    const [itemsToDelete] = await connection.query(`
+      SELECT id, item_name, current_stock
+      FROM items 
+      WHERE is_deleted = 1 
+      AND deleted_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    `);
+
+    for (const item of itemsToDelete) {
+      await connection.query(`
+        INSERT INTO transactions (item_id, transaction_type, quantity, user_id, notes)
+        VALUES (?, 'delete', ?, ?, ?)
+      `, [item.id, item.current_stock, req.user.id, `Item "${item.item_name}" auto-deleted after 30 days in archive`]);
+
+      await connection.query(`DELETE FROM items WHERE id = ?`, [item.id]);
     }
 
     await connection.commit();
-    res.json({ message: 'Item deleted successfully' });
+    res.json({ 
+      message: 'Cleanup completed',
+      items_deleted: itemsToDelete.length
+    });
   } catch (error) {
     await connection.rollback();
-    console.error('Error deleting inventory item:', error);
-    res.status(500).json({ error: 'Server error deleting item' });
+    console.error('Error cleaning up archived items:', error);
+    res.status(500).json({ error: 'Server error cleaning up items' });
   } finally {
     connection.release();
   }

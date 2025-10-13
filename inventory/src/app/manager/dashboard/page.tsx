@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../sidebar';
-import { Package, Plus, AlertTriangle, Clock, Users } from 'lucide-react';
+import { Package, Plus, AlertTriangle, Clock, Users, X } from 'lucide-react';
 import './dashboard.css';
 
 interface User {
@@ -43,6 +43,14 @@ const Dashboard = () => {
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [baristaCount, setBaristaCount] = useState(0);
   const [recentActivity, setRecentActivity] = useState<Transaction[]>([]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const confirmSignOut = () => {
+    localStorage.removeItem('cafestock_token');
+    localStorage.removeItem('cafestock_user');
+    setShowLogoutModal(false);
+    window.location.href = 'http://localhost:3000/';
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('cafestock_token');
@@ -70,6 +78,25 @@ const Dashboard = () => {
       window.location.href = '/';
       return;
     }
+  }, []);
+
+  useEffect(() => {
+    window.history.pushState({ page: "dashboard" }, "", window.location.href);
+
+    const handlePopState = (event: PopStateEvent) => {
+      const currentPath = window.location.pathname;
+      if (currentPath.includes("/barista/dashboard") || currentPath.includes("/manager/dashboard")) {
+        setShowLogoutModal(true);
+
+        window.history.pushState({ page: "dashboard" }, "", window.location.href);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, []);
 
   const fetchBaristaCount = async (token: string) => {
@@ -328,6 +355,39 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {showLogoutModal && (
+        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="modal-content logout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Confirm Sign Out</h3>
+              <button className="modal-close-button" onClick={() => setShowLogoutModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="logout-warning">Are you sure you want to sign out?</p>
+              <p className="logout-subtext">You’ll need to log in again to access your account.</p>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="modal-button cancel-button"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-button logout-confirm-button"
+                onClick={confirmSignOut}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

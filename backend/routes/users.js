@@ -25,11 +25,11 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ✅ Get total baristas
+// Get total baristas (exclude soft-deleted)
 router.get('/baristas/count', authenticateToken, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT COUNT(*) as total FROM users WHERE role = 'barista'`
+      `SELECT COUNT(*) as total FROM users WHERE role = 'barista' AND is_deleted = 0`
     );
 
     res.json({ total: rows[0].total });
@@ -39,10 +39,9 @@ router.get('/baristas/count', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Get all baristas
+// Get all baristas (exclude soft-deleted)
 router.get('/baristas', authenticateToken, async (req, res) => {
   try {
-    // Optional: ensure only manager can view
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -50,7 +49,7 @@ router.get('/baristas', authenticateToken, async (req, res) => {
     const [rows] = await db.query(
       `SELECT id, username, role, created_at, last_login
        FROM users 
-       WHERE role = 'barista'
+       WHERE role = 'barista' AND is_deleted = 0
        ORDER BY created_at DESC`
     );
 
@@ -61,7 +60,34 @@ router.get('/baristas', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Create new barista
+// Get archived baristas (manager only)
+router.get('/baristas/archived', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const [rows] = await db.query(
+      `SELECT 
+        id, 
+        username, 
+        role, 
+        created_at, 
+        deleted_at,
+        DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW()) as days_until_deletion
+       FROM users 
+       WHERE role = 'barista' AND is_deleted = 1
+       ORDER BY deleted_at DESC`
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching archived baristas:', error);
+    res.status(500).json({ error: 'Server error fetching archived baristas' });
+  }
+});
+
+// Create new barista
 router.post('/baristas', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'manager') {
@@ -74,13 +100,16 @@ router.post('/baristas', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    // Check if username exists
+    // Check if username exists (including soft-deleted)
     const [existing] = await db.query(
-      `SELECT id FROM users WHERE username = ?`,
+      `SELECT id, is_deleted FROM users WHERE username = ?`,
       [username]
     );
 
     if (existing.length > 0) {
+      if (existing[0].is_deleted === 1) {
+        return res.status(409).json({ error: 'Username exists in archive. Please restore or use a different username' });
+      }
       return res.status(409).json({ error: 'Username already exists' });
     }
 
@@ -100,10 +129,9 @@ router.post('/baristas', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Manager updates barista password
+// Manager updates barista password
 router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
   try {
-    // Only managers can update others' passwords
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -115,8 +143,8 @@ router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'New password must be at least 12 characters long' });
     }
 
-    // Ensure the user exists and is a barista
-    const [rows] = await db.query(`SELECT id, role FROM users WHERE id = ?`, [id]);
+    // Ensure the user exists and is a barista and not deleted
+    const [rows] = await db.query(`SELECT id, role FROM users WHERE id = ? AND is_deleted = 0`, [id]);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -141,33 +169,184 @@ router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Delete barista
+// Soft delete barista (manager only) - Archive
 router.delete('/baristas/:id', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    await connection.beginTransaction();
+
     const { id } = req.params;
 
-    // Prevent deleting manager accounts
-    const [rows] = await db.query(`SELECT role FROM users WHERE id = ?`, [id]);
+    // Prevent deleting manager accounts and check if not already deleted
+    const [rows] = await connection.query(`SELECT username, role FROM users WHERE id = ? AND is_deleted = 0`, [id]);
     if (rows.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: 'User not found' });
     }
     if (rows[0].role === 'manager') {
+      await connection.rollback();
       return res.status(400).json({ error: 'Cannot delete a manager account' });
     }
 
-    await db.query(`DELETE FROM users WHERE id = ?`, [id]);
-    res.json({ message: 'Barista account deleted successfully' });
+    const username = rows[0].username;
+
+    // Log transaction
+    await connection.query(`
+      INSERT INTO transactions (user_id, transaction_type, notes)
+      VALUES (?, 'delete', ?)
+    `, [id, `User "${username}" archived`]);
+
+    // Soft delete
+    await connection.query(`
+      UPDATE users 
+      SET is_deleted = 1, deleted_at = NOW() 
+      WHERE id = ?
+    `, [id]);
+
+    await connection.commit();
+    res.json({ message: 'Barista account archived successfully' });
   } catch (error) {
-    console.error('Error deleting barista:', error);
-    res.status(500).json({ error: 'Server error deleting barista' });
+    await connection.rollback();
+    console.error('Error archiving barista:', error);
+    res.status(500).json({ error: 'Server error archiving barista' });
+  } finally {
+    connection.release();
   }
 });
 
-// ✅ Get user profile by ID
+// Restore archived barista (manager only)
+router.post('/baristas/:id/restore', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+
+    const [rows] = await connection.query(`SELECT username FROM users WHERE id = ? AND is_deleted = 1`, [id]);
+    if (rows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Archived user not found' });
+    }
+
+    const username = rows[0].username;
+
+    // Restore user
+    await connection.query(`
+      UPDATE users 
+      SET is_deleted = 0, deleted_at = NULL 
+      WHERE id = ?
+    `, [id]);
+
+    // Log transaction
+    await connection.query(`
+      INSERT INTO transactions (user_id, transaction_type, notes)
+      VALUES (?, 'restock', ?)
+    `, [id, `User "${username}" restored from archive`]);
+
+    await connection.commit();
+    res.json({ message: 'Barista account restored successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error restoring barista:', error);
+    res.status(500).json({ error: 'Server error restoring barista' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Permanently delete archived barista (manager only)
+router.delete('/baristas/:id/permanent', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    await connection.beginTransaction();
+
+    const { id } = req.params;
+
+    const [rows] = await connection.query(`SELECT username FROM users WHERE id = ? AND is_deleted = 1`, [id]);
+    if (rows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Archived user not found' });
+    }
+
+    const username = rows[0].username;
+
+    // Log transaction
+    await connection.query(`
+      INSERT INTO transactions (user_id, transaction_type, notes)
+      VALUES (?, 'delete', ?)
+    `, [id, `User "${username}" permanently deleted from archive`]);
+
+    // Permanently delete
+    await connection.query(`DELETE FROM users WHERE id = ?`, [id]);
+
+    await connection.commit();
+    res.json({ message: 'Barista account permanently deleted' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error permanently deleting barista:', error);
+    res.status(500).json({ error: 'Server error permanently deleting barista' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Auto-cleanup archived users older than 30 days (cron job endpoint)
+router.post('/cleanup-archived', authenticateToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    await connection.beginTransaction();
+
+    const [usersToDelete] = await connection.query(`
+      SELECT id, username
+      FROM users 
+      WHERE is_deleted = 1 
+      AND deleted_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    `);
+
+    for (const user of usersToDelete) {
+      await connection.query(`
+        INSERT INTO transactions (user_id, transaction_type, notes)
+        VALUES (?, 'delete', ?)
+      `, [user.id, `User "${user.username}" auto-deleted after 30 days in archive`]);
+
+      await connection.query(`DELETE FROM users WHERE id = ?`, [user.id]);
+    }
+
+    await connection.commit();
+    res.json({ 
+      message: 'Cleanup completed',
+      users_deleted: usersToDelete.length
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error cleaning up archived users:', error);
+    res.status(500).json({ error: 'Server error cleaning up users' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get user profile by ID (exclude soft-deleted)
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -182,7 +361,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const [rows] = await db.query(
       `SELECT id, username, role, created_at, updated_at 
        FROM users 
-       WHERE id = ?`,
+       WHERE id = ? AND is_deleted = 0`,
       [userId]
     );
 
@@ -197,13 +376,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Update user password
+// Update user password
 router.put('/:id/password', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
     const { currentPassword, newPassword } = req.body;
     
-    // Check both userId and id in the token
     const tokenUserId = req.user.userId || req.user.id;
 
     // Verify user is updating their own password
@@ -222,7 +400,7 @@ router.put('/:id/password', authenticateToken, async (req, res) => {
 
     // Get current user password
     const [rows] = await db.query(
-      `SELECT password FROM users WHERE id = ?`,
+      `SELECT password FROM users WHERE id = ? AND is_deleted = 0`,
       [userId]
     );
 
@@ -254,7 +432,7 @@ router.put('/:id/password', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ Update username
+// Update username
 router.put('/:id/username', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -269,8 +447,11 @@ router.put('/:id/username', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Username must be at least 3 characters long' });
     }
 
-    // Check if username is already taken
-    const [existing] = await db.query(`SELECT id FROM users WHERE username = ? AND id != ?`, [username, userId]);
+    // Check if username is already taken (exclude soft-deleted and current user)
+    const [existing] = await db.query(
+      `SELECT id FROM users WHERE username = ? AND id != ? AND is_deleted = 0`, 
+      [username, userId]
+    );
     if (existing.length > 0) {
       return res.status(409).json({ error: 'Username is already taken' });
     }

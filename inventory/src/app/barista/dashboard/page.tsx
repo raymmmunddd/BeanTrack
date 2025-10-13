@@ -1,9 +1,8 @@
-// dashboard.tsx
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../sidebar';
-import { Package, Plus, AlertTriangle, Clock } from 'lucide-react';
+import { Package, Plus, AlertTriangle, Clock, X } from 'lucide-react';
 import './dashboard.css';
 
 interface User {
@@ -40,6 +39,14 @@ const Dashboard = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [recentActivity, setRecentActivity] = useState<Transaction[]>([]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const confirmSignOut = () => {
+    localStorage.removeItem('cafestock_token');
+    localStorage.removeItem('cafestock_user');
+    setShowLogoutModal(false);
+    window.location.href = 'http://localhost:3000/';
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('cafestock_token');
@@ -53,7 +60,7 @@ const Dashboard = () => {
     try {
       const userData = JSON.parse(userStr);
       setUser(userData);
-      
+
       if (userData.role !== 'barista') {
         window.location.href = `/${userData.role}/dashboard/`;
         return;
@@ -68,19 +75,36 @@ const Dashboard = () => {
     }
   }, []);
 
+  useEffect(() => {
+    window.history.pushState({ page: "dashboard" }, "", window.location.href);
+
+    const handlePopState = (event: PopStateEvent) => {
+      const currentPath = window.location.pathname;
+      if (currentPath.includes("/barista/dashboard") || currentPath.includes("/manager/dashboard")) {
+        setShowLogoutModal(true);
+
+        window.history.pushState({ page: "dashboard" }, "", window.location.href);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const fetchInventoryData = async (token: string) => {
     try {
       const response = await fetch('http://localhost:3001/api/inventory', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data: InventoryItem[] = await response.json();
         setTotalItems(data.length);
-        
-        const alertItems = data.filter(item => 
+
+        const alertItems = data.filter(item =>
           item.status === 'low' || item.status === 'out'
         );
         setLowStockItems(alertItems);
@@ -95,9 +119,7 @@ const Dashboard = () => {
   const fetchRecentActivity = async (token: string) => {
     try {
       const response = await fetch('http://localhost:3001/api/inventory/recent-activity', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
@@ -123,9 +145,9 @@ const Dashboard = () => {
       low: { color: '#eb912c', label: 'Low Stock' },
       out: { color: '#dc2626', label: 'Out of Stock' }
     };
-    
+
     const badge = badges[status as keyof typeof badges] || badges.healthy;
-    
+
     return (
       <span className="status-badge" style={{ color: badge.color, backgroundColor: `${badge.color}15` }}>
         <AlertTriangle className="badge-icon" />
@@ -138,7 +160,7 @@ const Dashboard = () => {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -150,23 +172,19 @@ const Dashboard = () => {
     const qty = transaction.quantity;
     const item = transaction.item_name;
     const unit = transaction.unit_name;
-    
-    if (type === 'usage') {
-      return `Used ${qty} ${unit}(s) of ${item}`;
-    } else if (type === 'restock') {
-      return `Restocked ${qty} units of ${item}`;
-    } else {
-      return `Adjusted ${item} stock by ${qty} units`;
-    }
+
+    if (type === 'usage') return `Used ${qty} ${unit}(s) of ${item}`;
+    if (type === 'restock') return `Restocked ${qty} units of ${item}`;
+    return `Adjusted ${item} stock by ${qty} units`;
   };
 
   if (isLoading || !user) {
     return (
       <div className="dashboard-container">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
           height: '100vh',
           fontSize: '18px',
           color: '#666'
@@ -180,7 +198,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      
+
       <div className="dashboard-content">
         <div className="dashboard-inner">
           <div className="dashboard-header">
@@ -216,10 +234,10 @@ const Dashboard = () => {
                 {lowStockItems.length}
               </p>
               <p className="stat-description">
-                {lowStockItems.length === 0 
-                  ? 'All items well stocked' 
-                  : lowStockItems.length < 3 
-                    ? 'Items need attention' 
+                {lowStockItems.length === 0
+                  ? 'All items well stocked'
+                  : lowStockItems.length < 3
+                    ? 'Items need attention'
                     : 'Items require immediate attention'}
               </p>
             </div>
@@ -232,7 +250,7 @@ const Dashboard = () => {
                 <h2 className="section-title">Critical Stocks</h2>
               </div>
               <p className="section-description">Items that need attention</p>
-              
+
               <div className="low-stock-list">
                 {lowStockItems.length === 0 ? (
                   <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
@@ -244,7 +262,7 @@ const Dashboard = () => {
                       <div>
                         <h3 className="item-name">{item.name}</h3>
                         <p className="item-remaining">
-                          {item.current_quantity} {item.unit} remaining 
+                          {item.current_quantity} {item.unit} remaining
                           (Min: {item.min_threshold}, Max: {item.max_threshold})
                         </p>
                       </div>
@@ -261,7 +279,7 @@ const Dashboard = () => {
                 <h2 className="section-title">Recent Activity</h2>
               </div>
               <p className="section-description">Your latest inventory updates</p>
-              
+
               <div className="activity-list">
                 {recentActivity.length === 0 ? (
                   <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
@@ -291,6 +309,39 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {showLogoutModal && (
+        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="modal-content logout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Confirm Sign Out</h3>
+              <button className="modal-close-button" onClick={() => setShowLogoutModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="logout-warning">Are you sure you want to sign out?</p>
+              <p className="logout-subtext">You’ll need to log in again to access your account.</p>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="modal-button cancel-button"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-button logout-confirm-button"
+                onClick={confirmSignOut}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

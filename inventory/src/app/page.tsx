@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { BarChart3, Users, Coffee, Eye, EyeOff } from 'lucide-react'
 import './page.css'
+import { useAuthRedirect } from '../../hooks/useAuthRedirect'
 
 type UserRole = 'manager' | 'barista'
 type FormMode = 'signin' | 'signup'
@@ -24,6 +25,7 @@ interface PasswordStrength {
 }
 
 export default function CafeStockLogin() {
+  useAuthRedirect()
   const [selectedRole, setSelectedRole] = useState<UserRole>('manager')
   const [formMode, setFormMode] = useState<FormMode>('signin')
   const [formData, setFormData] = useState<FormData>({

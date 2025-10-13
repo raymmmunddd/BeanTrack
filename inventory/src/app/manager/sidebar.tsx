@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { Home, Package, Plus, Settings, Coffee, LogOut, Menu, History, Users, Download, X } from 'lucide-react';
+import { Home, Package, Plus, Settings, Coffee, LogOut, Menu, History, Users, Download, X, ArchiveX } from 'lucide-react';
 import './sidebar.css';
 
 interface SidebarProps {
@@ -89,6 +89,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       case 'export':
         window.location.href = `${basePath}/export/`;
         break;
+      case 'archive':
+        window.location.href = `${basePath}/archive/`;
+        break;
         default:
         break;
     }
@@ -103,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'add-item', label: 'Add Item', icon: Plus },
     { id: 'history', label: 'History', icon: History },
+    { id: 'archive', label: 'Archive', icon: ArchiveX },
     { id: 'team', label: 'Team Management', icon: Users },
     { id: 'export', label: 'Export', icon: Download },
     { id: 'profile', label: 'Profile', icon: Settings },

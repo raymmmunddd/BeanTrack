@@ -1,4 +1,4 @@
-// activity-history.tsx
+// history.tsx
 
 "use client"
 
