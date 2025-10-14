@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../sidebar';
-import { User, Lock, Calendar, Activity, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Calendar, Activity, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import './profile.css';
 
 interface UserData {
@@ -13,11 +13,22 @@ interface UserData {
   updated_at: string;
 }
 
+// Password validation function (same as auth.js)
+const validatePassword = (password: string) => {
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  
+  return hasUpperCase && hasLowerCase && hasNumber && hasSymbol;
+};
+
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Form state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -43,8 +54,6 @@ const Profile = () => {
 
     try {
       const userData = JSON.parse(userStr);
-      console.log('User data from localStorage:', userData);
-      console.log('User ID:', userData.id);
       fetchUserProfile(token, userData.id);
     } catch (error) {
       console.error('Error parsing user data:', error);
@@ -54,9 +63,6 @@ const Profile = () => {
 
   const fetchUserProfile = async (token: string, userId: number) => {
     try {
-      console.log('Fetching profile with token:', token ? 'Token exists' : 'No token');
-      console.log('User ID:', userId);
-      
       const response = await fetch(`http://localhost:3001/api/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -75,63 +81,28 @@ const Profile = () => {
     }
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const clearForm = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setMessage('');
-
-    if (newPassword !== confirmPassword) {
-      setMessage('New passwords do not match');
-      setMessageType('error');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setMessage('Password must be at least 6 characters long');
-      setMessageType('error');
-      return;
-    }
-
-    const token = localStorage.getItem('cafestock_token');
-    if (!token || !user) return;
-
-    try {
-      const response = await fetch(`http://localhost:3001/api/users/${user.id}/password`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        })
-      });
-
-      if (response.ok) {
-        setMessage('Password updated successfully');
-        setMessageType('success');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setIsEditing(false);
-      } else {
-        const error = await response.json();
-        setMessage(error.message || 'Failed to update password');
-        setMessageType('error');
-      }
-    } catch (error) {
-      console.error('Error updating password:', error);
-      setMessage('An error occurred while updating password');
-      setMessageType('error');
+    if (user) {
+      setNewUsername(user.username);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setMessage('');
+    clearForm();
+  };
+
+  const isFormChanged = () => {
+    if (!user) return false;
+    
+    const usernameChanged = newUsername !== user.username;
+    const passwordProvided = currentPassword || newPassword || confirmPassword;
+    
+    return usernameChanged || passwordProvided;
   };
 
   const handleSaveChanges = async (e: React.FormEvent) => {
@@ -141,32 +112,63 @@ const Profile = () => {
     const token = localStorage.getItem('cafestock_token');
     if (!token || !user) return;
 
-    try {
-      // 1️⃣ Update username
-      const usernameRes = await fetch(`http://localhost:3001/api/users/${user.id}/username`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username: newUsername })
-      });
-
-      if (!usernameRes.ok) {
-        const err = await usernameRes.json();
-        setMessage(err.error || 'Failed to update username');
+    // Validate password if provided
+    if (newPassword) {
+      if (newPassword.length < 12) {
+        setMessage('Password must be at least 12 characters');
         setMessageType('error');
         return;
       }
 
-      // 2️⃣ Update password (only if provided)
-      if (currentPassword && newPassword) {
-        if (newPassword !== confirmPassword) {
-          setMessage('New passwords do not match');
+      if (!validatePassword(newPassword)) {
+        setMessage('Password must include uppercase, lowercase, number, and symbol');
+        setMessageType('error');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setMessage('New passwords do not match');
+        setMessageType('error');
+        return;
+      }
+
+      if (!currentPassword) {
+        setMessage('Current password is required to change password');
+        setMessageType('error');
+        return;
+      }
+    }
+
+    try {
+      // 1️⃣ Update username if changed
+      if (newUsername !== user.username) {
+        const usernameRes = await fetch(`http://localhost:3001/api/users/${user.id}/username`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username: newUsername })
+        });
+
+        if (!usernameRes.ok) {
+          const err = await usernameRes.json();
+          setMessage(err.error || 'Failed to update username');
           setMessageType('error');
           return;
         }
 
+        // Update localStorage with new username
+        const userStr = localStorage.getItem('cafestock_user');
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          userData.username = newUsername;
+          localStorage.setItem('cafestock_user', JSON.stringify(userData));
+        }
+      }
+
+      // 2️⃣ Update password if provided
+      if (currentPassword && newPassword) {
         const passwordRes = await fetch(`http://localhost:3001/api/users/${user.id}/password`, {
           method: 'PUT',
           headers: {
@@ -184,10 +186,13 @@ const Profile = () => {
         }
       }
 
-      setMessage('Profile updated successfully');
-      setMessageType('success');
+      // Success - show modal
+      setShowSuccessModal(true);
       setIsEditing(false);
-      fetchUserProfile(token, user.id); // refresh displayed data
+      clearForm();
+      
+      // Refresh user data
+      fetchUserProfile(token, user.id);
     } catch (error) {
       console.error('Error updating profile:', error);
       setMessage('An error occurred while saving changes');
@@ -224,7 +229,8 @@ const Profile = () => {
           justifyContent: 'center', 
           alignItems: 'center', 
           height: '100vh',
-          fontSize: '18px',
+          fontSize: '16px',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
           color: '#666'
         }}>
           Loading...
@@ -312,7 +318,7 @@ const Profile = () => {
             ) : (
               <form onSubmit={handleSaveChanges} className="password-form">
                 <div className="form-section">
-                  <h3 className="form-section-title">Change Password</h3>
+                  <h3 className="form-section-title">Update Profile</h3>
                   
                   <div className="form-group">
                     <label className="form-label">Username</label>
@@ -322,6 +328,7 @@ const Profile = () => {
                       placeholder="Enter new username"
                       value={newUsername}
                       onChange={(e) => setNewUsername(e.target.value)}
+                      required
                     />
                   </div>
 
@@ -364,6 +371,9 @@ const Profile = () => {
                           {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
+                      <p className="form-hint">
+                        Min 12 chars, uppercase, lowercase, number, symbol
+                      </p>
                     </div>
 
                     <div className="form-group">
@@ -388,14 +398,18 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {message && (
-                  <div className={`message ${messageType}`}>
+                {message && messageType === 'error' && (
+                  <div className="message error">
                     {message}
                   </div>
                 )}
 
                 <div className="button-group">
-                  <button type="submit" className="save-button">
+                  <button 
+                    type="submit" 
+                    className="save-button"
+                    disabled={!isFormChanged()}
+                  >
                     Save Changes
                   </button>
                   <button type="button" className="cancel-button" onClick={handleCancel}>
@@ -407,6 +421,27 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="profile-modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="profile-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-modal-icon">
+              <CheckCircle size={48} />
+            </div>
+            <h3 className="profile-modal-title">Profile Updated</h3>
+            <p className="profile-modal-message">
+              Your profile has been updated successfully.
+            </p>
+            <button 
+              className="profile-modal-button"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

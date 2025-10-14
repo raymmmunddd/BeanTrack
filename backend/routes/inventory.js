@@ -32,7 +32,9 @@ router.get('/', authenticateToken, async (req, res) => {
         i.id,
         i.item_name as name,
         c.name as category,
+        i.category_id,
         u.name as unit,
+        i.unit_id,
         i.current_stock as current_quantity,
         i.minimum_stock as min_threshold,
         i.maximum_stock as max_threshold,
@@ -189,7 +191,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
         i.id,
         i.item_name as name,
         c.name as category,
+        i.category_id,
         u.name as unit,
+        i.unit_id,
         i.current_stock as current_quantity,
         i.minimum_stock as min_threshold,
         i.maximum_stock as max_threshold,
@@ -419,6 +423,28 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
+    // Validate min/max thresholds
+    if (minimum_stock > maximum_stock) {
+      await connection.rollback();
+      return res.status(400).json({ 
+        error: 'Minimum stock cannot exceed maximum stock' 
+      });
+    }
+
+    // Check for duplicate name
+    const [duplicates] = await connection.query(`
+      SELECT id FROM items 
+      WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?)) 
+      AND is_deleted = 0
+    `, [item_name]);
+
+    if (duplicates.length > 0) {
+      await connection.rollback();
+      return res.status(400).json({ 
+        error: 'An item with this name already exists' 
+      });
+    }
+
     const [result] = await connection.query(`
       INSERT INTO items 
         (item_name, category_id, unit_id, current_stock, minimum_stock, maximum_stock, description)
@@ -468,6 +494,29 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     }
 
+    // Validate min/max thresholds
+    if (minimum_stock > maximum_stock) {
+      await connection.rollback();
+      return res.status(400).json({ 
+        error: 'Minimum stock cannot exceed maximum stock' 
+      });
+    }
+
+    // Check for duplicate name (excluding current item)
+    const [duplicates] = await connection.query(`
+      SELECT id FROM items 
+      WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?)) 
+      AND id != ? 
+      AND is_deleted = 0
+    `, [item_name, req.params.id]);
+
+    if (duplicates.length > 0) {
+      await connection.rollback();
+      return res.status(400).json({ 
+        error: 'An item with this name already exists' 
+      });
+    }
+
     const [oldItems] = await connection.query(`SELECT * FROM items WHERE id = ? AND is_deleted = 0`, [req.params.id]);
     if (oldItems.length === 0) {
       await connection.rollback();
@@ -477,10 +526,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const [result] = await connection.query(`
       UPDATE items 
-      SET item_name = ?, current_stock = ?, 
+      SET item_name = ?, category_id = ?, unit_id = ?, current_stock = ?, 
           minimum_stock = ?, maximum_stock = ?, description = ?
       WHERE id = ? AND is_deleted = 0
-    `, [item_name, current_stock, minimum_stock, maximum_stock, description || null, req.params.id]);
+    `, [item_name, category_id, unit_id, current_stock, minimum_stock, maximum_stock, description || null, req.params.id]);
 
     if (result.affectedRows === 0) {
       await connection.rollback();

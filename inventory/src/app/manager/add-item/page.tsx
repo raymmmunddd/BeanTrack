@@ -1,11 +1,11 @@
-// additem.tsx
+// add-item.tsx
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, UtensilsCrossed, Plus, X, Trash2 } from 'lucide-react'
+import { Package, UtensilsCrossed, Plus, Trash2, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { Sidebar } from '../sidebar'
-import './add-items-recipes.css'
+import './add.css'
 
 interface Category {
   id: number
@@ -20,6 +20,7 @@ interface Unit {
 interface InventoryItem {
   id: number
   name: string
+  item_name: string
   unit: string
 }
 
@@ -30,12 +31,35 @@ interface RecipeIngredient {
   unit?: string
 }
 
+interface ErrorState {
+  show: boolean
+  message: string
+  type: 'duplicate' | 'validation' | 'stock' | 'server' | ''
+}
+
+interface SuccessModalState {
+  show: boolean
+  title: string
+  message: string
+}
+
 export default function AddItemsRecipes() {
   const [activeTab, setActiveTab] = useState('add-item')
   const [categories, setCategories] = useState<Category[]>([])
   const [units, setUnits] = useState<Unit[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Error states
+  const [itemError, setItemError] = useState<ErrorState>({ show: false, message: '', type: '' })
+  const [recipeError, setRecipeError] = useState<ErrorState>({ show: false, message: '', type: '' })
+
+  // Success modal state
+  const [successModal, setSuccessModal] = useState<SuccessModalState>({ 
+    show: false, 
+    title: '', 
+    message: '' 
+  })
 
   // Item form state
   const [itemForm, setItemForm] = useState({
@@ -90,8 +114,50 @@ export default function AddItemsRecipes() {
     }
   }
 
+  const validateItemName = (name: string): boolean => {
+    // Only allow letters, spaces, and basic punctuation
+    const validPattern = /^[a-zA-Z\s\-']+$/
+    return validPattern.test(name)
+  }
+
+  const validateRecipeName = (name: string): boolean => {
+    // Only allow letters and spaces for recipe names
+    const validPattern = /^[a-zA-Z\s]+$/
+    return validPattern.test(name)
+  }
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault()
+    setItemError({ show: false, message: '', type: '' })
+
+    // Validate item name
+    if (!validateItemName(itemForm.item_name)) {
+      setItemError({
+        show: true,
+        message: 'Item name can only contain letters, spaces, hyphens, and apostrophes',
+        type: 'validation'
+      })
+      return
+    }
+
+    // Validate stock thresholds
+    if (itemForm.minimum_stock > itemForm.maximum_stock) {
+      setItemError({
+        show: true,
+        message: 'Minimum stock cannot exceed maximum stock',
+        type: 'stock'
+      })
+      return
+    }
+
+    if (itemForm.current_stock < 0 || itemForm.minimum_stock < 0 || itemForm.maximum_stock < 0) {
+      setItemError({
+        show: true,
+        message: 'Stock values cannot be negative',
+        type: 'validation'
+      })
+      return
+    }
     
     try {
       const token = localStorage.getItem('cafestock_token')
@@ -104,8 +170,15 @@ export default function AddItemsRecipes() {
         body: JSON.stringify(itemForm)
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        alert('Item added successfully!')
+        setSuccessModal({
+          show: true,
+          title: 'Item Added Successfully!',
+          message: `"${itemForm.item_name}" has been added to your inventory.`
+        })
+        
         setItemForm({
           item_name: '',
           category_id: '',
@@ -117,19 +190,70 @@ export default function AddItemsRecipes() {
         })
         fetchData()
       } else {
-        const data = await response.json()
-        alert(data.error || 'Failed to add item')
+        // Handle specific error types
+        if (data.error.includes('already exists') || data.error.includes('duplicate')) {
+          setItemError({
+            show: true,
+            message: `An item named "${itemForm.item_name}" already exists in your inventory`,
+            type: 'duplicate'
+          })
+        } else if (data.error.includes('Minimum stock') || data.error.includes('Maximum stock')) {
+          setItemError({
+            show: true,
+            message: data.error,
+            type: 'stock'
+          })
+        } else {
+          setItemError({
+            show: true,
+            message: data.error || 'Failed to add item',
+            type: 'server'
+          })
+        }
       }
     } catch (err) {
-      alert('Unable to add item')
+      setItemError({
+        show: true,
+        message: 'Unable to connect to server. Please try again.',
+        type: 'server'
+      })
     }
   }
 
   const handleAddRecipe = async (e: React.FormEvent) => {
     e.preventDefault()
+    setRecipeError({ show: false, message: '', type: '' })
+
+    // Validate recipe name
+    if (!validateRecipeName(recipeForm.recipe_name)) {
+      setRecipeError({
+        show: true,
+        message: 'Recipe name can only contain letters and spaces',
+        type: 'validation'
+      })
+      return
+    }
     
     if (recipeForm.ingredients.length === 0) {
-      alert('Please add at least one ingredient')
+      setRecipeError({
+        show: true,
+        message: 'Please add at least one ingredient to the recipe',
+        type: 'validation'
+      })
+      return
+    }
+
+    // Validate all ingredients have positive quantities
+    const invalidIngredient = recipeForm.ingredients.find(ing => 
+      !ing.item_id || ing.quantity_required <= 0
+    )
+
+    if (invalidIngredient) {
+      setRecipeError({
+        show: true,
+        message: 'All ingredients must have a valid item and positive quantity',
+        type: 'validation'
+      })
       return
     }
 
@@ -144,18 +268,41 @@ export default function AddItemsRecipes() {
         body: JSON.stringify(recipeForm)
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        alert('Recipe added successfully!')
+        setSuccessModal({
+          show: true,
+          title: 'Recipe Added Successfully!',
+          message: `"${recipeForm.recipe_name}" has been created with ${recipeForm.ingredients.length} ingredient(s).`
+        })
+        
         setRecipeForm({
           recipe_name: '',
           ingredients: []
         })
       } else {
-        const data = await response.json()
-        alert(data.error || 'Failed to add recipe')
+        // Handle specific error types
+        if (data.error.includes('already exists') || data.error.includes('duplicate')) {
+          setRecipeError({
+            show: true,
+            message: `A recipe named "${recipeForm.recipe_name}" already exists`,
+            type: 'duplicate'
+          })
+        } else {
+          setRecipeError({
+            show: true,
+            message: data.error || 'Failed to add recipe',
+            type: 'server'
+          })
+        }
       }
     } catch (err) {
-      alert('Unable to add recipe')
+      setRecipeError({
+        show: true,
+        message: 'Unable to connect to server. Please try again.',
+        type: 'server'
+      })
     }
   }
 
@@ -173,7 +320,7 @@ export default function AddItemsRecipes() {
     if (field === 'item_id') {
       const item = inventoryItems.find(i => i.id === Number(value))
       if (item) {
-        newIngredients[index].item_name = item.item_name
+        newIngredients[index].item_name = item.item_name || item.name
         newIngredients[index].unit = item.unit
       }
     }
@@ -186,6 +333,163 @@ export default function AddItemsRecipes() {
       ...recipeForm,
       ingredients: recipeForm.ingredients.filter((_, i) => i !== index)
     })
+  }
+
+  const ErrorAlert = ({ error, onClose }: { error: ErrorState, onClose: () => void }) => {
+    if (!error.show) return null
+
+    const getErrorIcon = () => {
+      switch (error.type) {
+        case 'duplicate':
+          return <AlertCircle size={20} />
+        case 'validation':
+          return <AlertCircle size={20} />
+        case 'stock':
+          return <AlertCircle size={20} />
+        default:
+          return <AlertCircle size={20} />
+      }
+    }
+
+    const getErrorColor = () => {
+      switch (error.type) {
+        case 'duplicate':
+          return '#f59e0b' // amber
+        case 'validation':
+          return '#ef4444' // red
+        case 'stock':
+          return '#f59e0b' // amber
+        default:
+          return '#dc2626' // dark red
+      }
+    }
+
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '0.75rem',
+        padding: '1rem',
+        backgroundColor: '#fef2f2',
+        border: `1px solid ${getErrorColor()}`,
+        borderRadius: '0.5rem',
+        marginBottom: '1rem'
+      }}>
+        <div style={{ color: getErrorColor(), flexShrink: 0, marginTop: '2px' }}>
+          {getErrorIcon()}
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ 
+            margin: 0, 
+            fontSize: '0.875rem', 
+            color: '#7f1d1d',
+            fontWeight: 500 
+          }}>
+            {error.message}
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: getErrorColor(),
+            cursor: 'pointer',
+            padding: '0',
+            flexShrink: 0
+          }}
+        >
+          <X size={18} />
+        </button>
+      </div>
+    )
+  }
+
+  const SuccessModal = ({ modal, onClose }: { modal: SuccessModalState, onClose: () => void }) => {
+    if (!modal.show) return null
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '0.75rem',
+          padding: '2rem',
+          maxWidth: '400px',
+          width: '90%',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: '#dcfce7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <CheckCircle size={32} color="#16a34a" />
+            </div>
+            
+            <div>
+              <h3 style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#170d03',
+                marginBottom: '0.5rem'
+              }}>
+                {modal.title}
+              </h3>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                margin: 0
+              }}>
+                {modal.message}
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.75rem 2rem',
+                backgroundColor: '#775932',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5d4426'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#775932'}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -214,6 +518,11 @@ export default function AddItemsRecipes() {
                 <p className="section-subtitle">Add a new item to your cafe inventory</p>
               </div>
             </div>
+
+            <ErrorAlert 
+              error={itemError} 
+              onClose={() => setItemError({ show: false, message: '', type: '' })} 
+            />
 
             <form onSubmit={handleAddItem} className="add-form">
               <div className="form-group">
@@ -265,7 +574,7 @@ export default function AddItemsRecipes() {
                 <input
                   type="number"
                   placeholder="0"
-                  value={itemForm.current_stock}
+                  value={itemForm.current_stock === 0 ? '' : itemForm.current_stock}
                   onChange={(e) => setItemForm({...itemForm, current_stock: Number(e.target.value)})}
                   className="form-input"
                   min="0"
@@ -280,7 +589,7 @@ export default function AddItemsRecipes() {
                   <input
                     type="number"
                     placeholder="0"
-                    value={itemForm.minimum_stock}
+                    value={itemForm.minimum_stock === 0 ? '' : itemForm.minimum_stock}
                     onChange={(e) => setItemForm({...itemForm, minimum_stock: Number(e.target.value)})}
                     className="form-input"
                     min="0"
@@ -294,7 +603,7 @@ export default function AddItemsRecipes() {
                   <input
                     type="number"
                     placeholder="0"
-                    value={itemForm.maximum_stock}
+                    value={itemForm.maximum_stock === 0 ? '' : itemForm.maximum_stock}
                     onChange={(e) => setItemForm({...itemForm, maximum_stock: Number(e.target.value)})}
                     className="form-input"
                     min="0"
@@ -334,17 +643,28 @@ export default function AddItemsRecipes() {
               </div>
             </div>
 
+            <ErrorAlert 
+              error={recipeError} 
+              onClose={() => setRecipeError({ show: false, message: '', type: '' })} 
+            />
+
             <form onSubmit={handleAddRecipe} className="add-form">
               <div className="form-group">
                 <label className="form-label">Recipe Name *</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Cappuccino"
-                  value={recipeForm.recipe_name}
-                  onChange={(e) => setRecipeForm({...recipeForm, recipe_name: e.target.value})}
-                  className="form-input"
-                  required
-                />
+                  <input
+                    type="text"
+                    placeholder="e.g., Cappuccino"
+                    value={recipeForm.recipe_name}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow only letters and spaces
+                      if (/^[A-Za-z\s]*$/.test(value)) {
+                        setRecipeForm({ ...recipeForm, recipe_name: value });
+                      }
+                    }}
+                    className="form-input"
+                    required
+                  />
               </div>
 
               <div className="ingredients-section">
@@ -378,7 +698,7 @@ export default function AddItemsRecipes() {
                         <option value="">Select item</option>
                         {inventoryItems.map(item => (
                           <option key={item.id} value={item.id}>
-                            {item.name} ({item.unit})
+                            {item.name || item.item_name}
                           </option>
                         ))}
                       </select>
@@ -388,7 +708,7 @@ export default function AddItemsRecipes() {
                       <input
                         type="number"
                         placeholder="Quantity"
-                        value={ingredient.quantity_required}
+                        value={ingredient.quantity_required === 0 ? '' : ingredient.quantity_required}
                         onChange={(e) => updateIngredient(index, 'quantity_required', Number(e.target.value))}
                         className="form-input"
                         min="0"
@@ -420,6 +740,11 @@ export default function AddItemsRecipes() {
           </div>
         </div>
       </div>
+
+      <SuccessModal 
+        modal={successModal} 
+        onClose={() => setSuccessModal({ show: false, title: '', message: '' })} 
+      />
     </div>
   )
 }

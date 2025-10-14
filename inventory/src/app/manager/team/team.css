@@ -1,4 +1,4 @@
-/* Team Management CSS */
+/* team.css */
 
 body {
   background-color: #f1f0ee;
@@ -245,6 +245,7 @@ create-button:hover {
   gap: 0.5rem;
   font-size: 0.75rem;
   color: #6b7280;
+  margin-bottom: 5px;
 }
 
 .meta-icon {

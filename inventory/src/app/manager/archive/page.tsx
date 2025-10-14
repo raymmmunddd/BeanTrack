@@ -377,7 +377,7 @@ const ArchiveManager = () => {
                         onClick={() => handlePermanentDelete('item', item.id, item.name)}
                       >
                         <Trash2 className="action-icon" />
-                        Delete Forever
+                        Delete Permanently
                       </button>
                     </div>
                   </div>

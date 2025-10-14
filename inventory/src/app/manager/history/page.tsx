@@ -97,9 +97,9 @@ const ActivityHistory = () => {
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(activity => 
-        activity.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        activity.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        activity.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+        (activity.item_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (activity.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (activity.notes?.toLowerCase() || '').includes(searchQuery.toLowerCase())
       );
     }
 

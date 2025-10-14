@@ -1,9 +1,7 @@
-// inventory.tsx
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, Grid3x3, List, AlertCircle, CheckCircle, Package2, Edit2, Trash2, X } from 'lucide-react'
+import { Search, Filter, Grid3x3, List, AlertCircle, CheckCircle, Package2, Edit2, Trash2, X, MinusCircle, XCircle, Minus } from 'lucide-react'
 import { Sidebar } from '../sidebar';
 import './inventory.css'
 
@@ -21,8 +19,20 @@ interface InventoryItem {
   description?: string
 }
 
+interface Category {
+  id: number
+  name: string
+}
+
+interface Unit {
+  id: number
+  name: string
+}
+
 export default function CafeInventory() {
   const [items, setItems] = useState<InventoryItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [units, setUnits] = useState<Unit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -33,9 +43,12 @@ export default function CafeInventory() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
+  const [validationError, setValidationError] = useState('')
 
   useEffect(() => {
     fetchInventory()
+    fetchCategories()
+    fetchUnits()
   }, [])
 
   const fetchInventory = async () => {
@@ -49,6 +62,7 @@ export default function CafeInventory() {
 
       if (response.ok) {
         const data = await response.json()
+        // Ensure category_id and unit_id are included
         setItems(data)
       } else {
         setError('Failed to load inventory')
@@ -57,6 +71,42 @@ export default function CafeInventory() {
       setError('Unable to connect to server')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('cafestock_token')
+      const response = await fetch('http://localhost:3001/api/categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data)
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err)
+    }
+  }
+
+  const fetchUnits = async () => {
+    try {
+      const token = localStorage.getItem('cafestock_token')
+      const response = await fetch('http://localhost:3001/api/units', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUnits(data)
+      }
+    } catch (err) {
+      console.error('Error fetching units:', err)
     }
   }
 
@@ -70,14 +120,14 @@ export default function CafeInventory() {
     return matchesSearch && matchesCategory
   })
 
-  const categories = ['All', ...Array.from(new Set(items.map(item => item.category)))]
+  const categoryList = ['All', ...Array.from(new Set(items.map(item => item.category)))]
 
   const getStatusBadge = (item: InventoryItem) => {
     const badges = {
       healthy: { color: '#16a34a', label: 'Healthy', icon: CheckCircle },
-      medium: { color: '#e1bc42', label: 'Medium', icon: AlertCircle },
+      medium: { color: '#e1bc42', label: 'Medium', icon: MinusCircle },
       low: { color: '#eb912c', label: 'Low Stock', icon: AlertCircle },
-      out: { color: '#dc2626', label: 'Out of Stock', icon: AlertCircle }
+      out: { color: '#dc2626', label: 'Out of Stock', icon: XCircle }
     };
     
     const badge = badges[item.status] || badges.healthy;
@@ -97,6 +147,7 @@ export default function CafeInventory() {
 
   const handleEdit = (item: InventoryItem) => {
     setEditingItem(item)
+    setValidationError('')
     setShowEditModal(true)
   }
 
@@ -130,8 +181,65 @@ export default function CafeInventory() {
     }
   }
 
+  const validateEdit = () => {
+    if (!editingItem) return false
+
+    // Check if name is empty
+    if (!editingItem.name.trim()) {
+      setValidationError('Item name cannot be empty')
+      return false
+    }
+
+    // Check for duplicate names (excluding current item)
+    const duplicateName = items.find(
+      item => item.id !== editingItem.id && 
+      item.name.toLowerCase() === editingItem.name.trim().toLowerCase()
+    )
+    if (duplicateName) {
+      setValidationError('An item with this name already exists')
+      return false
+    }
+
+    // Check if category is selected
+    if (!editingItem.category_id) {
+      setValidationError('Please select a category')
+      return false
+    }
+
+    // Check if unit is selected
+    if (!editingItem.unit_id) {
+      setValidationError('Please select a unit')
+      return false
+    }
+
+    // Validate minimum doesn't exceed maximum
+    if (editingItem.min_threshold > editingItem.max_threshold) {
+      setValidationError('Minimum stock cannot exceed maximum stock')
+      return false
+    }
+
+    // Validate maximum is greater than minimum
+    if (editingItem.max_threshold < editingItem.min_threshold) {
+      setValidationError('Maximum stock must be greater than minimum stock')
+      return false
+    }
+
+    // Check for negative values
+    if (editingItem.current_quantity < 0 || editingItem.min_threshold < 0 || editingItem.max_threshold < 0) {
+      setValidationError('Stock values cannot be negative')
+      return false
+    }
+
+    setValidationError('')
+    return true
+  }
+
   const handleSaveEdit = async () => {
     if (!editingItem) return
+
+    if (!validateEdit()) {
+      return
+    }
 
     try {
       const token = localStorage.getItem('cafestock_token')
@@ -142,7 +250,7 @@ export default function CafeInventory() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          item_name: editingItem.name,
+          item_name: editingItem.name.trim(),
           category_id: editingItem.category_id,
           unit_id: editingItem.unit_id,
           current_stock: editingItem.current_quantity,
@@ -155,13 +263,14 @@ export default function CafeInventory() {
       if (response.ok) {
         setShowEditModal(false)
         setEditingItem(null)
+        setValidationError('')
         fetchInventory()
       } else {
         const data = await response.json()
-        alert(data.error || 'Failed to update item')
+        setValidationError(data.error || 'Failed to update item')
       }
     } catch (err) {
-      alert('Unable to update item')
+      setValidationError('Unable to update item')
     }
   }
 
@@ -187,18 +296,10 @@ export default function CafeInventory() {
           </div>
           
           <div className="status-legend">
-            <div className="legend-item-healthy">
-              <span className="dot"></span> Healthy
-            </div>
-            <div className="legend-item-medium">
-              <span className="dot"></span> Medium   
-            </div>
-            <div className="legend-item-low">
-              <span className="dot"></span> Low
-            </div>
-            <div className="legend-item-out">
-              <span className="dot"></span> Out of Stock
-            </div>
+            {getStatusBadge({ status: 'healthy' } as InventoryItem)}
+            {getStatusBadge({ status: 'medium' } as InventoryItem)}
+            {getStatusBadge({ status: 'low' } as InventoryItem)}
+            {getStatusBadge({ status: 'out' } as InventoryItem)}
           </div>
         </div>
 
@@ -221,7 +322,7 @@ export default function CafeInventory() {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="filter-select"
             >
-              {categories.map(cat => (
+              {categoryList.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -385,6 +486,12 @@ export default function CafeInventory() {
               </div>
 
               <div className="modal-body">
+                {validationError && (
+                  <div className="validation-error">
+                    {validationError}
+                  </div>
+                )}
+
                 <div className="form-group">
                   <label className="form-label">Item Name</label>
                   <input
@@ -395,14 +502,45 @@ export default function CafeInventory() {
                   />
                 </div>
 
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select
+                      value={editingItem.category_id || ''}
+                      onChange={(e) => setEditingItem({...editingItem, category_id: Number(e.target.value)})}
+                      className="form-input"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Unit</label>
+                    <select
+                      value={editingItem.unit_id || ''}
+                      onChange={(e) => setEditingItem({...editingItem, unit_id: Number(e.target.value)})}
+                      className="form-input"
+                    >
+                      <option value="">Select unit</option>
+                      {units.map(unit => (
+                        <option key={unit.id} value={unit.id}>{unit.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Current Stock</label>
                   <input
                     type="number"
-                    value={editingItem.current_quantity}
+                    value={editingItem.current_quantity === 0 ? '' : editingItem.current_quantity}
                     onChange={(e) => setEditingItem({...editingItem, current_quantity: Number(e.target.value)})}
                     className="form-input"
                     min="0"
+                    step="0.01"
                   />
                 </div>
 
@@ -411,10 +549,11 @@ export default function CafeInventory() {
                     <label className="form-label">Minimum Stock</label>
                     <input
                       type="number"
-                      value={editingItem.min_threshold}
+                      value={editingItem.min_threshold === 0 ? '' : editingItem.min_threshold}
                       onChange={(e) => setEditingItem({...editingItem, min_threshold: Number(e.target.value)})}
                       className="form-input"
                       min="0"
+                      step="0.01"
                     />
                   </div>
 
@@ -422,10 +561,11 @@ export default function CafeInventory() {
                     <label className="form-label">Maximum Stock</label>
                     <input
                       type="number"
-                      value={editingItem.max_threshold}
+                      value={editingItem.max_threshold === 0 ? '' : editingItem.max_threshold}
                       onChange={(e) => setEditingItem({...editingItem, max_threshold: Number(e.target.value)})}
                       className="form-input"
                       min="0"
+                      step="0.01"
                     />
                   </div>
                 </div>

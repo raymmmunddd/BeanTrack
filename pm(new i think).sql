@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 13, 2025 at 06:40 PM
+-- Generation Time: Oct 14, 2025 at 08:16 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -73,18 +73,19 @@ CREATE TABLE `items` (
 
 INSERT INTO `items` (`id`, `item_name`, `category_id`, `unit_id`, `current_stock`, `minimum_stock`, `maximum_stock`, `description`, `created_at`, `updated_at`, `is_deleted`, `deleted_at`) VALUES
 (18, 'Espresso Beans', 1, 1, 17.80, 10.00, 100.00, 'Premium roasted espresso beans', '2025-10-01 14:01:19', '2025-10-10 09:43:59', 0, NULL),
-(19, 'Ground Coffee Blend', 1, 1, 30.00, 5.00, 80.00, 'House blend ground coffee', '2025-10-01 14:01:19', '2025-10-01 14:01:19', 0, NULL),
+(19, 'Ground Coffee Blend', 1, 1, 3.00, 5.00, 80.00, 'House blend ground coffee', '2025-10-01 14:01:19', '2025-10-14 00:50:38', 0, NULL),
 (20, 'Whole Milk', 2, 2, 0.00, 5.00, 50.00, 'Fresh whole milk for lattes and cappuccinos', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
-(21, 'Whipping Cream', 2, 2, 10.00, 2.00, 30.00, 'Cream for specialty drinks', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
+(21, 'Whipping Cream', 2, 2, 1.00, 2.00, 30.00, 'Cream for specialty drinks', '2025-10-01 14:52:32', '2025-10-14 00:50:52', 0, NULL),
 (22, 'White Sugar', 3, 1, 3.00, 5.00, 60.00, 'Refined white sugar', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
-(23, 'Brown Sugar', 3, 1, 40.00, 3.00, 40.00, 'Brown sugar for coffee and pastries', '2025-10-01 14:52:32', '2025-10-13 13:54:47', 0, NULL),
+(23, 'Brown Sugar', 3, 1, 38.00, 3.00, 40.00, 'Brown sugar for coffee and pastries', '2025-10-01 14:52:32', '2025-10-14 17:21:05', 0, NULL),
 (24, 'Paper Cups (12oz)', 4, 3, 20.00, 50.00, 500.00, 'Takeaway paper cups', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
-(25, 'Cup Lids (12oz)', 4, 3, 500.00, 50.00, 500.00, 'Lids for takeaway cups', '2025-10-01 14:52:32', '2025-10-13 13:55:23', 0, NULL),
+(25, 'Cup Lids (12oz)', 4, 3, 497.00, 50.00, 500.00, 'Lids for takeaway cups', '2025-10-01 14:52:32', '2025-10-14 17:19:27', 0, NULL),
 (26, 'Vanilla Syrup', 5, 4, 0.00, 3.00, 30.00, 'Classic vanilla flavoring syrup', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
-(27, 'Caramel Syrup', 5, 4, 25.00, 2.00, 25.00, 'Rich caramel syrup for drinks', '2025-10-01 14:52:32', '2025-10-12 10:20:28', 0, NULL),
+(27, 'Caramel Syrup', 5, 4, 23.00, 5.00, 25.00, 'Rich caramel syrup for drinks', '2025-10-01 14:52:32', '2025-10-14 17:27:21', 0, NULL),
 (28, 'Espresso Machine Filter', 6, 3, 5.00, 1.00, 10.00, 'Spare filters for espresso machine', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
-(29, 'Coffee Grinder Burr', 6, 3, 8.00, 1.00, 8.00, 'Replacement burr for coffee grinder', '2025-10-01 14:52:32', '2025-10-13 16:38:01', 1, '2025-10-14 00:38:01'),
-(30, 'Cocoa Powder', 7, 8, 20.00, 2.00, 20.00, 'Used for hot chocolate and mochas', '2025-10-01 14:52:32', '2025-10-13 13:55:00', 0, NULL);
+(29, 'Coffee Grinder Burr', 6, 3, 8.00, 1.00, 8.00, 'Replacement burr for coffee grinder', '2025-10-01 14:52:32', '2025-10-14 17:20:48', 0, NULL),
+(30, 'Cocoa Powder', 7, 8, 20.00, 2.00, 20.00, 'Used for hot chocolate and mochas', '2025-10-01 14:52:32', '2025-10-14 17:20:38', 0, NULL),
+(35, 'Test', 2, 4, 1.00, 1.00, 2.00, '1', '2025-10-14 17:33:54', '2025-10-14 17:34:06', 1, '2025-10-15 01:34:06');
 
 -- --------------------------------------------------------
 
@@ -197,11 +198,45 @@ INSERT INTO `transactions` (`id`, `item_id`, `recipe_id`, `transaction_type`, `q
 (33, NULL, NULL, 'delete', NULL, NULL, 'User \"mavie\" permanently deleted from archive', '2025-10-13 16:34:36', '2025-10-13 16:34:36'),
 (34, 29, NULL, 'delete', 8.00, 1, 'Item \"Coffee Grinder Burr\" archived', '2025-10-13 16:38:01', '2025-10-13 16:38:01'),
 (35, NULL, NULL, 'delete', NULL, 10, 'User \"dada\" archived', '2025-10-13 16:38:19', '2025-10-13 16:38:19'),
-(36, NULL, NULL, 'delete', NULL, 9, 'User \"faf\" archived', '2025-10-13 16:38:20', '2025-10-13 16:38:20'),
-(37, NULL, NULL, 'delete', NULL, 8, 'User \"ad\" archived', '2025-10-13 16:38:22', '2025-10-13 16:38:22'),
-(38, NULL, NULL, 'delete', NULL, 4, 'User \"test2\" archived', '2025-10-13 16:38:28', '2025-10-13 16:38:28'),
-(39, NULL, NULL, 'delete', NULL, 5, 'User \"test4\" archived', '2025-10-13 16:38:30', '2025-10-13 16:38:30'),
-(40, NULL, NULL, 'delete', NULL, 6, 'User \"bruh\" archived', '2025-10-13 16:38:32', '2025-10-13 16:38:32');
+(36, NULL, NULL, 'delete', NULL, NULL, 'User \"faf\" archived', '2025-10-13 16:38:20', '2025-10-13 16:38:20'),
+(37, NULL, NULL, 'delete', NULL, NULL, 'User \"ad\" archived', '2025-10-13 16:38:22', '2025-10-13 16:38:22'),
+(38, NULL, NULL, 'delete', NULL, NULL, 'User \"test2\" archived', '2025-10-13 16:38:28', '2025-10-13 16:38:28'),
+(39, NULL, NULL, 'delete', NULL, NULL, 'User \"test4\" archived', '2025-10-13 16:38:30', '2025-10-13 16:38:30'),
+(40, NULL, NULL, 'delete', NULL, NULL, 'User \"bruh\" archived', '2025-10-13 16:38:32', '2025-10-13 16:38:32'),
+(41, 19, NULL, 'update', 10.00, 1, 'Item updated. Old stock: 30.00, New stock: 10', '2025-10-14 00:50:30', '2025-10-14 00:50:30'),
+(42, 19, NULL, 'update', 3.00, 1, 'Item updated. Old stock: 10.00, New stock: 3', '2025-10-14 00:50:38', '2025-10-14 00:50:38'),
+(43, 21, NULL, 'update', 1.00, 1, 'Item updated. Old stock: 10.00, New stock: 1', '2025-10-14 00:50:52', '2025-10-14 00:50:52'),
+(44, 30, NULL, 'delete', 20.00, 1, 'Item \"Cocoa Powder\" archived', '2025-10-14 12:53:10', '2025-10-14 12:53:10'),
+(45, 30, NULL, 'restock', 20.00, 1, 'Item \"Cocoa Powder\" restored from archive', '2025-10-14 12:53:33', '2025-10-14 12:53:33'),
+(46, NULL, NULL, 'delete', NULL, NULL, 'User \"testing\" archived', '2025-10-14 13:08:24', '2025-10-14 13:08:24'),
+(47, NULL, NULL, 'delete', NULL, NULL, 'User \"testing\" permanently deleted from archive', '2025-10-14 13:08:27', '2025-10-14 13:08:27'),
+(48, NULL, NULL, 'delete', NULL, NULL, 'User \"bruh\" permanently deleted from archive', '2025-10-14 13:08:30', '2025-10-14 13:08:30'),
+(49, NULL, NULL, 'delete', NULL, NULL, 'User \"test4\" permanently deleted from archive', '2025-10-14 13:08:32', '2025-10-14 13:08:32'),
+(50, NULL, NULL, 'delete', NULL, NULL, 'User \"test2\" permanently deleted from archive', '2025-10-14 13:08:34', '2025-10-14 13:08:34'),
+(51, NULL, NULL, 'delete', NULL, NULL, 'User \"ad\" permanently deleted from archive', '2025-10-14 13:08:36', '2025-10-14 13:08:36'),
+(52, NULL, NULL, 'delete', NULL, NULL, 'User \"faf\" permanently deleted from archive', '2025-10-14 13:08:38', '2025-10-14 13:08:38'),
+(53, 23, NULL, 'update', 40.00, 1, 'Item updated. Old stock: 40.00, New stock: 40.00', '2025-10-14 13:15:24', '2025-10-14 13:15:24'),
+(54, 23, NULL, 'update', 40.00, 1, 'Item updated. Old stock: 40.00, New stock: 40.00', '2025-10-14 13:15:44', '2025-10-14 13:15:44'),
+(55, 27, NULL, 'usage', 2.00, 2, 'Manual usage entry', '2025-10-14 16:28:59', '2025-10-14 16:28:59'),
+(56, 25, 7, 'usage', 1.00, 2, 'Recipe usage: 1 serving(s)', '2025-10-14 16:35:43', '2025-10-14 16:35:43'),
+(57, 23, NULL, 'usage', 2.00, 2, 'Manual usage entry', '2025-10-14 16:35:50', '2025-10-14 16:35:50'),
+(58, 25, 7, 'usage', 1.00, 2, 'Recipe usage: 1 serving(s)', '2025-10-14 16:59:37', '2025-10-14 16:59:37'),
+(59, 25, 7, 'usage', 1.00, 2, 'Recipe usage: 1 serving(s)', '2025-10-14 17:19:27', '2025-10-14 17:19:27'),
+(60, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-14 17:20:15', '2025-10-14 17:20:15'),
+(61, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-14 17:20:20', '2025-10-14 17:20:20'),
+(62, 30, NULL, 'delete', 20.00, 1, 'Item \"Cocoa Powder\" archived', '2025-10-14 17:20:34', '2025-10-14 17:20:34'),
+(63, 30, NULL, 'restock', 20.00, 1, 'Item \"Cocoa Powder\" restored from archive', '2025-10-14 17:20:38', '2025-10-14 17:20:38'),
+(64, 29, NULL, 'restock', 8.00, 1, 'Item \"Coffee Grinder Burr\" restored from archive', '2025-10-14 17:20:48', '2025-10-14 17:20:48'),
+(65, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-14 17:21:02', '2025-10-14 17:21:02'),
+(66, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-14 17:21:05', '2025-10-14 17:21:05'),
+(67, 27, NULL, 'update', 23.00, 1, 'Item updated. Old stock: 23.00, New stock: 23.00', '2025-10-14 17:25:58', '2025-10-14 17:25:58'),
+(68, 27, NULL, 'update', 0.00, 1, 'Item updated. Old stock: 23.00, New stock: 0', '2025-10-14 17:27:03', '2025-10-14 17:27:03'),
+(69, 27, NULL, 'update', 23.00, 1, 'Item updated. Old stock: 0.00, New stock: 23', '2025-10-14 17:27:21', '2025-10-14 17:27:21'),
+(70, 35, NULL, 'added', 1.00, 1, 'New item \"Test\" added to inventory', '2025-10-14 17:33:54', '2025-10-14 17:33:54'),
+(71, 35, NULL, 'delete', 1.00, 1, 'Item \"Test\" archived', '2025-10-14 17:34:06', '2025-10-14 17:34:06'),
+(72, NULL, NULL, 'delete', NULL, 14, 'User \"da\" archived', '2025-10-14 17:54:04', '2025-10-14 17:54:04'),
+(73, NULL, NULL, 'delete', NULL, 15, 'User \"Test\" archived', '2025-10-14 17:56:13', '2025-10-14 17:56:13'),
+(74, NULL, NULL, 'delete', NULL, 16, 'User \"Test2\" archived', '2025-10-14 18:12:08', '2025-10-14 18:12:08');
 
 -- --------------------------------------------------------
 
@@ -252,16 +287,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `role`, `remember_token`, `created_at`, `updated_at`, `last_login`, `is_deleted`, `deleted_at`) VALUES
-(1, 'manager', '$2b$10$Olv69dF2TM2yeIW1ghDgpeaBMGgeJ54Bq/Maj0YP1HwnuNRcjn2Ee', 'manager', NULL, '2025-10-01 08:26:40', '2025-10-13 16:09:08', '2025-10-13 16:09:08', 0, NULL),
-(2, 'Raymund', '$2b$10$I.bIqJAlknd2GL8X3U.7qu69UbtIhrLPwYE6rGX.m/MBT7tNqsZ3.', 'barista', NULL, '2025-10-01 08:27:28', '2025-10-13 12:59:34', '2025-10-13 12:59:34', 0, NULL),
+(1, 'manager', '$2b$10$Olv69dF2TM2yeIW1ghDgpeaBMGgeJ54Bq/Maj0YP1HwnuNRcjn2Ee', 'manager', NULL, '2025-10-01 08:26:40', '2025-10-14 17:19:45', '2025-10-14 17:19:45', 0, NULL),
+(2, 'Raymund', '$2b$10$x3FCn5qfOgDbA.q2IhcaH.QUuGqBg2n6nO.HE6exC6ZN4iaOzKMyW', 'barista', NULL, '2025-10-01 08:27:28', '2025-10-14 17:19:02', '2025-10-14 17:19:02', 0, NULL),
 (3, 'john', '$2b$10$lpaFhbuLVyxWW8bDMiA9EOnV5ZpbuMgPLuFAjVrlhMQxVJCEw1ecO', 'barista', NULL, '2025-10-01 11:54:20', '2025-10-04 12:21:11', NULL, 0, NULL),
-(4, 'test2', '$2b$10$bzy52RtKWqdkjlj70QK5out6Z6vRpClFk1MvWgiMwUgELXZP8.d7W', 'barista', NULL, '2025-10-01 13:03:50', '2025-10-13 16:38:28', NULL, 1, '2025-10-14 00:38:28'),
-(5, 'test4', '$2b$10$wuQpY2.SF0QgYt1UsDvPWOPQgpWf3Dz2m7cnumrZcjASB1Caq3PRi', 'barista', NULL, '2025-10-01 13:04:12', '2025-10-13 16:38:30', NULL, 1, '2025-10-14 00:38:30'),
-(6, 'bruh', '$2b$10$A9GN5HjK5AUS3iTON6zmm.eZ1iExw6FmBpTbWUUMIEQG8HNlNu4SK', 'barista', NULL, '2025-10-01 14:44:10', '2025-10-13 16:38:32', NULL, 1, '2025-10-14 00:38:32'),
 (7, 'aaron', '$2b$10$JOos3.0xYsC4zbjSpBJpeunNuwxYjPRPGUX2S0esYSJvPr3GbQxTm', 'barista', NULL, '2025-10-01 14:51:48', '2025-10-06 13:41:58', NULL, 0, NULL),
-(8, 'ad', '$2b$10$Rv5rQLBsZKGQUQwN.SzJMu0vG/NqGf9Bv.lUp824WlfUZbshAl07G', 'barista', NULL, '2025-10-08 11:31:42', '2025-10-13 16:38:22', NULL, 1, '2025-10-14 00:38:22'),
-(9, 'faf', '$2b$10$rcbHXsAnv0Q/HnMvaZCNNOdz5o.ohK8.r6TR6yZxlZr9bc0YqQPN6', 'barista', NULL, '2025-10-08 11:32:40', '2025-10-13 16:38:20', NULL, 1, '2025-10-14 00:38:20'),
-(10, 'dada', '$2b$10$Bx3P8V6ioYwO4vaa0TBX6eZBDHsqa6nwNcpipyXY1fuDQlDkXxiji', 'barista', NULL, '2025-10-08 11:33:25', '2025-10-13 16:38:19', NULL, 1, '2025-10-14 00:38:19');
+(10, 'dada', '$2b$10$Bx3P8V6ioYwO4vaa0TBX6eZBDHsqa6nwNcpipyXY1fuDQlDkXxiji', 'barista', NULL, '2025-10-08 11:33:25', '2025-10-13 16:38:19', NULL, 1, '2025-10-14 00:38:19'),
+(14, 'da', '$2b$10$0/OaIXJvRXIuDOCGkEgZUuLkZSS5aCwj.UTfupFL89IE4SJM14Fb6', 'barista', NULL, '2025-10-14 17:54:01', '2025-10-14 17:54:04', NULL, 1, '2025-10-15 01:54:04'),
+(15, 'Test', '$2b$10$GBPipr9.axtV1And9Dpg/ewI4xbyTlYNIRI9Ft04JNhRf1GsUg0B2', 'barista', NULL, '2025-10-14 17:56:11', '2025-10-14 17:56:13', NULL, 1, '2025-10-15 01:56:13'),
+(16, 'Test2', '$2b$10$yvgo8kPKarnQq5eKK1kp9uDe674HOWknM0RsegcLpjQEBlDOX1p3W', 'barista', NULL, '2025-10-14 18:12:03', '2025-10-14 18:12:08', NULL, 1, '2025-10-15 02:12:08');
 
 --
 -- Indexes for dumped tables
@@ -336,7 +369,7 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `items`
 --
 ALTER TABLE `items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `recipes`
@@ -354,7 +387,7 @@ ALTER TABLE `recipe_ingredients`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
 
 --
 -- AUTO_INCREMENT for table `units`
@@ -366,7 +399,7 @@ ALTER TABLE `units`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- Constraints for dumped tables

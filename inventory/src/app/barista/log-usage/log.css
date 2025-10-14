@@ -74,19 +74,54 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.error-message {
+.log-error-message {
   padding: 1rem;
   background-color: #fee;
   border: 1px solid #fcc;
   border-radius: 0.5rem;
   color: #c33;
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideInError 0.3s ease-out, fadeOutError 0.3s ease-in 2.7s forwards;
+}
+
+@keyframes slideInError {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOutError {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .loading-message {
   padding: 2rem;
   text-align: center;
   color: #6b7280;
+}
+
+/* Status Badge - Scoped for Log Usage */
+.log-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 /* Recipe Grid */
@@ -141,7 +176,7 @@ body {
   max-height: 180px;
   overflow-y: auto;
   padding-right: 0.5rem;
-  padding-top: 10%;
+  padding-top: 5%;
 }
 
 .ingredient-item {
@@ -168,24 +203,6 @@ body {
 .ingredient-quantity {
   font-size: 0.875rem;
   color: #6b7280;
-}
-
-.ingredient-status {
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.ingredient-status.status-low {
-  background-color: #fee;
-  color: #dc2626;
-}
-
-.ingredient-status.status-in-stock {
-  background-color: #dcfce7;
-  color: #16a34a;
 }
 
 .quantity-controls {
@@ -228,7 +245,7 @@ body {
   border-radius: 0.5rem;
   font-size: 1rem;
   font-weight: 500;
-  color: #6b7280;
+  color: #170d03;
   background-color: #f9fafb;
 }
 
@@ -250,13 +267,17 @@ body {
 }
 
 .log-button:hover:not(:disabled) {
-  background-color: #2d1f12;
+  background-color: #5d4426;
 }
 
 .log-button:disabled {
-  opacity: 0.5;
+  opacity: 0.9;
   cursor: not-allowed;
   background-color: #9ca3af;
+}
+
+.log-button-disabled:hover {
+  background-color: #b91c1c !important;
 }
 
 /* Manual Entry */
@@ -282,7 +303,7 @@ body {
 }
 
 .add-item-button:hover {
-  background-color: #2d1f12;
+  background-color: #5d4426;
 }
 
 .empty-state {
@@ -326,7 +347,7 @@ body {
 }
 
 .empty-button:hover {
-  background-color: #2d1f12;
+  background-color: #5d4426;
 }
 
 .manual-entry-container {
@@ -402,15 +423,22 @@ body {
   border-color: #775932;
 }
 
+.stock-value-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .stock-value {
   font-weight: 500;
-  color: #170d03;
-  width: 100%;
+  color: #6b7280;
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   background-color: #ffffff;
+  display: inline-block;
+  min-width: 260px;
 }
 
 .remove-button {
@@ -449,7 +477,7 @@ body {
 }
 
 .log-all-button:hover:not(:disabled) {
-  background-color: #2d1f12;
+  background-color: #5d4426;
 }
 
 .log-all-button:disabled {
@@ -504,8 +532,8 @@ body {
   }
 }
 
-/* Success Modal */
-.modal-overlay {
+/* Log Usage Modals - Scoped to prevent conflicts */
+.log-modal-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0,0,0,0.4);
@@ -513,10 +541,10 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 50;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: logFadeIn 0.2s ease-in-out;
 }
 
-.modal-content {
+.log-modal-content {
   background-color: #fff;
   padding: 2rem;
   border-radius: 0.75rem;
@@ -524,27 +552,27 @@ body {
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   max-width: 400px;
   width: 90%;
-  animation: slideUp 0.25s ease-in-out;
+  animation: logSlideUp 0.25s ease-in-out;
 }
 
-.modal-icon {
+.log-modal-icon {
   margin-bottom: 1rem;
 }
 
-.modal-title {
+.log-modal-title {
   font-size: 1.5rem;
   font-weight: 600;
   color: #170d03;
   margin-bottom: 0.5rem;
 }
 
-.modal-message {
+.log-modal-message {
   color: #6b7280;
   font-size: 0.95rem;
   margin-bottom: 1.5rem;
 }
 
-.modal-button {
+.log-modal-button {
   background-color: #775932;
   color: white;
   border: none;
@@ -553,17 +581,64 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  width: 100%;
 }
 
-.modal-button:hover {
-  background-color: #2d1f12;
+.log-modal-button:hover {
+  background-color: #5d4426;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; } to { opacity: 1; }
+.log-modal-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
 }
 
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.log-modal-button-cancel {
+  background-color: #ffffff;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.log-modal-button-cancel:hover {
+  background-color: #f3f4f6;
+  color: #170d03;
+}
+
+.log-modal-button-confirm {
+  background-color: #775932;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex: 1;
+}
+
+.log-modal-button-confirm:hover {
+  background-color: #5d4426;
+}
+
+@keyframes logFadeIn {
+  from { opacity: 0; } 
+  to { opacity: 1; }
+}
+
+@keyframes logSlideUp {
+  from { 
+    transform: translateY(20px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
 }

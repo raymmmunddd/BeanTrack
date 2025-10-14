@@ -4,6 +4,22 @@ body {
   background-color: #f1f0ee;
 }
 
+.delete-subtext {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.validation-error {
+  padding: 0.75rem 1rem;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 0.5rem;
+  color: #c33;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

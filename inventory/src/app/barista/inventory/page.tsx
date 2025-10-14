@@ -3,7 +3,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, Grid3x3, List, AlertCircle, CheckCircle, Package2 } from 'lucide-react'
+import { Search, Filter, Grid3x3, List, AlertCircle, CheckCircle, Package2, MinusCircle, XCircle, Minus } from 'lucide-react'
 import { Sidebar } from '../sidebar';
 import './inventory.css'
 
@@ -68,9 +68,9 @@ export default function CafeInventory() {
   const getStatusBadge = (item: InventoryItem) => {
     const badges = {
       healthy: { color: '#16a34a', label: 'Healthy', icon: CheckCircle },
-      medium: { color: '#e1bc42', label: 'Medium', icon: AlertCircle },
+      medium: { color: '#e1bc42', label: 'Medium', icon: MinusCircle },
       low: { color: '#eb912c', label: 'Low Stock', icon: AlertCircle },
-      out: { color: '#dc2626', label: 'Out of Stock', icon: AlertCircle }
+      out: { color: '#dc2626', label: 'Out of Stock', icon: XCircle }
     };
     
     const badge = badges[item.status] || badges.healthy;
@@ -110,18 +110,10 @@ export default function CafeInventory() {
           </div>
           
           <div className="status-legend">
-            <div className="legend-item-healthy">
-              <span className="dot"></span> Healthy
-            </div>
-            <div className="legend-item-medium">
-              <span className="dot"></span> Medium   
-            </div>
-            <div className="legend-item-low">
-              <span className="dot"></span> Low
-            </div>
-            <div className="legend-item-out">
-              <span className="dot"></span> Out of Stock
-            </div>
+            {getStatusBadge({ status: 'healthy' } as InventoryItem)}
+            {getStatusBadge({ status: 'medium' } as InventoryItem)}
+            {getStatusBadge({ status: 'low' } as InventoryItem)}
+            {getStatusBadge({ status: 'out' } as InventoryItem)}
           </div>
         </div>
 

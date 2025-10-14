@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../sidebar';
-import { Package, Plus, AlertTriangle, Clock, Users, X } from 'lucide-react';
+import { Package, Plus, AlertTriangle, Clock, Users, X, XCircle, AlertCircle, CheckCircle, MinusCircle } from 'lucide-react';
 import './dashboard.css';
 
 interface User {
@@ -166,17 +166,23 @@ const Dashboard = () => {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      healthy: { color: '#16a34a', label: 'Healthy' },
-      medium: { color: '#e1bc42', label: 'Medium' },
-      low: { color: '#eb912c', label: 'Low Stock' },
-      out: { color: '#dc2626', label: 'Out of Stock' }
+      healthy: { color: '#16a34a', label: 'Healthy', icon: <CheckCircle className="badge-icon" /> },
+      medium: { color: '#e1bc42', label: 'Medium', icon: <MinusCircle className="badge-icon" /> },
+      low: { color: '#eb912c', label: 'Low Stock', icon: <AlertCircle className="badge-icon" /> },
+      out: { color: '#dc2626', label: 'Out of Stock', icon: <XCircle className="badge-icon" /> }
     };
-    
+
     const badge = badges[status as keyof typeof badges] || badges.healthy;
-    
+
     return (
-      <span className="status-badge" style={{ color: badge.color, backgroundColor: `${badge.color}15` }}>
-        <AlertTriangle className="badge-icon" />
+      <span
+        className="status-badge"
+        style={{
+          color: badge.color,
+          backgroundColor: `${badge.color}15`
+        }}
+      >
+        {badge.icon}
         {badge.label}
       </span>
     );

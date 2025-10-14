@@ -1,5 +1,4 @@
-// recipes.js
-
+// routes/recipes.js
 const express = require('express');
 const db = require('../config/database');
 const jwt = require('jsonwebtoken');
@@ -24,11 +23,11 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Get all recipes with their ingredients (exclude soft-deleted)
+// ✅ Get all recipes with ingredients (with full status logic)
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const [recipes] = await db.query(`
-      SELECT id, recipe_name as name
+      SELECT id, recipe_name AS name
       FROM recipes
       WHERE is_deleted = 0
       ORDER BY recipe_name ASC
@@ -39,13 +38,17 @@ router.get('/', authenticateToken, async (req, res) => {
         SELECT 
           ri.item_id,
           i.item_name,
-          ri.quantity_required as quantity,
-          u.name as unit,
+          ri.quantity_required AS quantity,
+          u.name AS unit,
           i.current_stock,
+          i.minimum_stock,
+          i.maximum_stock,
           CASE 
+            WHEN i.current_stock = 0 THEN 'out'
             WHEN i.current_stock <= i.minimum_stock THEN 'low'
-            ELSE 'in_stock'
-          END as status
+            WHEN i.current_stock <= (i.minimum_stock + (i.maximum_stock - i.minimum_stock) * 0.5) THEN 'medium'
+            ELSE 'healthy'
+          END AS status
         FROM recipe_ingredients ri
         JOIN items i ON ri.item_id = i.id
         JOIN units u ON i.unit_id = u.id
