@@ -57,6 +57,8 @@ const ExportData = () => {
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
   useEffect(() => {
     const token = localStorage.getItem('cafestock_token');
     const userStr = localStorage.getItem('cafestock_user');
@@ -102,22 +104,22 @@ const ExportData = () => {
       
   switch (selectedExport) {
     case 'inventory':
-      endpoint = 'http://localhost:3001/api/export?type=inventory';
+      endpoint = '${API_BASE_URL}/api/export?type=inventory';
       headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Min Stock', 'Max Stock', 'Status'];
       break;
 
     case 'lowstock':
-      endpoint = 'http://localhost:3001/api/export?type=lowstock';
+      endpoint = '${API_BASE_URL}/api/export?type=lowstock';
       headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Min Stock', 'Stock Level'];
       break;
 
     case 'history':
-      endpoint = 'http://localhost:3001/api/export?type=history';
+      endpoint = '${API_BASE_URL}/api/export?type=history';
       headers = ['Date', 'Time', 'User', 'Action', 'Item', 'Quantity', 'Unit', 'Notes'];
       break;
 
     case 'team':
-      endpoint = 'http://localhost:3001/api/export?type=team';
+      endpoint = '${API_BASE_URL}/api/export?type=team';
       headers = ['Username', 'Role', 'Created At', 'Last Login'];
       break;
 
@@ -250,7 +252,7 @@ const ExportData = () => {
     
     try {
       // Use the same endpoint structure as fetchPreviewData
-      const endpoint = `http://localhost:3001/api/export?type=${selectedExport}`;
+      const endpoint = `${API_BASE_URL}/api/export?type=${selectedExport}`;
 
       const response = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
