@@ -39,6 +39,8 @@ export default function CafeStockLogin() {
   })
   const [showPassword, setShowPassword] = useState(false)
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
   const calculatePasswordStrength = (password: string): PasswordStrength => {
     if (!password) return { score: 0, label: '', color: '' }
 
@@ -117,7 +119,7 @@ export default function CafeStockLogin() {
 
     try {
       const endpoint = formMode === 'signin' ? '/signin' : '/signup'
-      const response = await fetch(`http://localhost:3001/api/auth${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
