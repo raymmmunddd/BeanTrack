@@ -355,7 +355,7 @@ const Dashboard = () => {
           <div className="dashboard-header">
             <div>
               <h1 className="dashboard-title">Welcome back, Manager!</h1>
-              <p className="dashboard-subtitle">Here's your cafe inventory overview</p>
+              <p className="dashboard-subtitle">Here&apos;s your cafe inventory overview</p>
             </div>
             <button 
               className="log-usage-button"
@@ -510,7 +510,7 @@ const Dashboard = () => {
 
             <div className="modal-body">
               <p className="logout-warning">Are you sure you want to sign out?</p>
-              <p className="logout-subtext">You'll need to log in again to access your account.</p>
+              <p className="logout-subtext">You&apos;ll need to log in again to access your account.</p>
             </div>
 
             <div className="modal-footer">
@@ -548,7 +548,7 @@ const Dashboard = () => {
 
             <div className="modal-body">
               <p className="logout-warning">
-                Mark "{selectedItem.name}" as ordered?
+                Mark &quot;{selectedItem.name}&quot; as ordered?
               </p>
               <p className="logout-subtext">
                 This will flag the item as ordered in the system.
@@ -592,7 +592,7 @@ const Dashboard = () => {
                 ✓ Successfully marked as ordered!
               </p>
               <p className="logout-subtext">
-                "{selectedItem.name}" has been marked as ordered.
+                &quot;{selectedItem.name}&quot; has been marked as ordered.
               </p>
             </div>
 
@@ -626,7 +626,7 @@ const Dashboard = () => {
 
             <div className="modal-body">
               <p className="logout-warning">
-                Restock "{selectedItem.name}"
+                Restock &quot;{selectedItem.name}&quot;
               </p>
               <p className="logout-subtext" style={{ marginBottom: '1rem' }}>
                 Current stock: {selectedItem.current_quantity} {selectedItem.unit}
@@ -703,7 +703,7 @@ const Dashboard = () => {
                 ✓ Successfully restocked!
               </p>
               <p className="logout-subtext">
-                "{selectedItem.name}" has been restocked with {restockQuantity} {selectedItem.unit}.
+                &quot;{selectedItem.name}&quot; has been restocked with {restockQuantity} {selectedItem.unit}.
               </p>
             </div>
 
