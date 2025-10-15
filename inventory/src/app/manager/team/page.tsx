@@ -39,6 +39,8 @@ const TeamManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [baristaToDelete, setBaristaToDelete] = useState<Barista | null>(null);
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+  
   useEffect(() => {
     const token = localStorage.getItem('cafestock_token');
     const userStr = localStorage.getItem('cafestock_user');
@@ -67,7 +69,7 @@ const TeamManagement = () => {
 
   const fetchBaristas = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/users/baristas', {
+      const response = await fetch('${API_BASE_URL}/api/users/baristas', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -142,7 +144,7 @@ const TeamManagement = () => {
     const token = localStorage.getItem('cafestock_token');
     
     try {
-      const response = await fetch('http://localhost:3001/api/users/baristas', {
+      const response = await fetch('${API_BASE_URL}/api/users/baristas', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,7 +180,7 @@ const TeamManagement = () => {
     const token = localStorage.getItem('cafestock_token');
     
     try {
-      const response = await fetch(`http://localhost:3001/api/users/baristas/${baristaToDelete.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/baristas/${baristaToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -225,7 +227,7 @@ const TeamManagement = () => {
     try {
       // Update username first if changed
       if (editUsername !== selectedBarista?.username) {
-        const resUsername = await fetch(`http://localhost:3001/api/users/baristas/${selectedBarista?.id}`, {
+        const resUsername = await fetch(`${API_BASE_URL}/api/users/baristas/${selectedBarista?.id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -242,7 +244,7 @@ const TeamManagement = () => {
 
       // Update password if provided
       if (editPassword.trim().length > 0) {
-        const resPassword = await fetch(`http://localhost:3001/api/users/baristas/${selectedBarista?.id}/password`, {
+        const resPassword = await fetch(`${API_BASE_URL}/api/users/baristas/${selectedBarista?.id}/password`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
