@@ -684,7 +684,7 @@ export default function AddItemsRecipes() {
 
                 {recipeForm.ingredients.length === 0 && (
                   <div className="empty-ingredients">
-                    <p>No ingredients added yet. Click "Add Ingredient" to start.</p>
+                    <p>No ingredients added yet. Click &quot;Add Ingredient&quot; to start.</p>
                   </div>
                 )}
 
