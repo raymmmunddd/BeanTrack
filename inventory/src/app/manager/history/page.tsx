@@ -37,6 +37,10 @@ const ActivityHistory = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [dateRange, setDateRange] = useState('all');
   const [users, setUsers] = useState<string[]>([]);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     const token = localStorage.getItem('cafestock_token');
@@ -66,6 +70,7 @@ const ActivityHistory = () => {
 
   useEffect(() => {
     applyFilters();
+    setCurrentPage(1);
   }, [activities, searchQuery, selectedUser, selectedType, dateRange]);
 
   const fetchActivities = async (token: string) => {
@@ -80,7 +85,6 @@ const ActivityHistory = () => {
         const data: Transaction[] = await response.json();
         setActivities(data);
         
-        // Extract unique usernames
         const uniqueUsers = Array.from(new Set(data.map(t => t.username).filter(Boolean)));
         setUsers(uniqueUsers);
       }
@@ -94,7 +98,6 @@ const ActivityHistory = () => {
   const applyFilters = () => {
     let filtered = [...activities];
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(activity => 
         (activity.item_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -103,17 +106,14 @@ const ActivityHistory = () => {
       );
     }
 
-    // User filter
     if (selectedUser !== 'all') {
       filtered = filtered.filter(activity => activity.username === selectedUser);
     }
 
-    // Type filter
     if (selectedType !== 'all') {
       filtered = filtered.filter(activity => activity.transaction_type === selectedType);
     }
 
-    // Date range filter
     if (dateRange !== 'all') {
       const now = new Date();
       const cutoffDate = new Date();
@@ -136,6 +136,16 @@ const ActivityHistory = () => {
     }
 
     setFilteredActivities(filtered);
+  };
+
+  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedActivities = filteredActivities.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const exportHistory = () => {
@@ -326,7 +336,7 @@ const ActivityHistory = () => {
           </div>
 
           <div className="results-info">
-            Showing {filteredActivities.length} of {activities.length} activities
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredActivities.length)} of {filteredActivities.length} activities
           </div>
 
           <div className="timeline-card">
@@ -342,7 +352,7 @@ const ActivityHistory = () => {
                   No activities found matching your filters
                 </p>
               ) : (
-                filteredActivities.map((activity) => (
+                paginatedActivities.map((activity) => (
                   <div key={activity.id} className="timeline-item">
                     <div className="timeline-marker">
                       <div className="timeline-dot"></div>
@@ -381,6 +391,49 @@ const ActivityHistory = () => {
                 ))
               )}
             </div>
+
+            {filteredActivities.length > 0 && totalPages > 1 && (
+              <div className="pagination">
+                <button 
+                  className="pagination-button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                
+                <div className="pagination-numbers">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          className={`pagination-number ${page === currentPage ? 'active' : ''}`}
+                          onClick={() => goToPage(page)}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="pagination-ellipsis">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+                
+                <button 
+                  className="pagination-button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

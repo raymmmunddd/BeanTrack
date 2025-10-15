@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 14, 2025 at 08:16 PM
+-- Generation Time: Oct 15, 2025 at 10:20 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -77,7 +77,7 @@ INSERT INTO `items` (`id`, `item_name`, `category_id`, `unit_id`, `current_stock
 (20, 'Whole Milk', 2, 2, 0.00, 5.00, 50.00, 'Fresh whole milk for lattes and cappuccinos', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
 (21, 'Whipping Cream', 2, 2, 1.00, 2.00, 30.00, 'Cream for specialty drinks', '2025-10-01 14:52:32', '2025-10-14 00:50:52', 0, NULL),
 (22, 'White Sugar', 3, 1, 3.00, 5.00, 60.00, 'Refined white sugar', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
-(23, 'Brown Sugar', 3, 1, 38.00, 3.00, 40.00, 'Brown sugar for coffee and pastries', '2025-10-01 14:52:32', '2025-10-14 17:21:05', 0, NULL),
+(23, 'Brown Sugar', 3, 1, 38.00, 3.00, 40.00, 'Brown sugar for coffee and pastries', '2025-10-01 14:52:32', '2025-10-15 08:09:37', 0, NULL),
 (24, 'Paper Cups (12oz)', 4, 3, 20.00, 50.00, 500.00, 'Takeaway paper cups', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
 (25, 'Cup Lids (12oz)', 4, 3, 497.00, 50.00, 500.00, 'Lids for takeaway cups', '2025-10-01 14:52:32', '2025-10-14 17:19:27', 0, NULL),
 (26, 'Vanilla Syrup', 5, 4, 0.00, 3.00, 30.00, 'Classic vanilla flavoring syrup', '2025-10-01 14:52:32', '2025-10-01 14:52:32', 0, NULL),
@@ -112,7 +112,7 @@ INSERT INTO `recipes` (`id`, `recipe_name`, `created_at`, `updated_at`, `is_dele
 (3, 'Espresso', '2025-10-02 06:24:43', '2025-10-02 06:24:43', 0, NULL),
 (4, 'Iced Coffee', '2025-10-02 06:24:43', '2025-10-02 06:24:43', 0, NULL),
 (5, 'Mocha', '2025-10-02 06:24:43', '2025-10-02 06:24:43', 0, NULL),
-(7, 'Test Recipe', '2025-10-10 11:35:08', '2025-10-10 11:35:08', 0, NULL);
+(7, 'Recipe Test2', '2025-10-10 11:35:08', '2025-10-15 08:18:04', 1, '2025-10-15 16:18:04');
 
 -- --------------------------------------------------------
 
@@ -144,7 +144,7 @@ INSERT INTO `recipe_ingredients` (`id`, `recipe_id`, `item_id`, `quantity_requir
 (10, 5, 18, 18.23, '2025-10-02 06:26:45', '2025-10-02 06:26:45'),
 (11, 5, 20, 150.10, '2025-10-02 06:26:45', '2025-10-02 06:26:45'),
 (12, 5, 30, 30.50, '2025-10-02 06:26:45', '2025-10-02 06:26:45'),
-(14, 7, 25, 1.00, '2025-10-10 11:35:08', '2025-10-10 11:35:08');
+(17, 7, 25, 1.00, '2025-10-15 08:13:58', '2025-10-15 08:13:58');
 
 -- --------------------------------------------------------
 
@@ -236,7 +236,14 @@ INSERT INTO `transactions` (`id`, `item_id`, `recipe_id`, `transaction_type`, `q
 (71, 35, NULL, 'delete', 1.00, 1, 'Item \"Test\" archived', '2025-10-14 17:34:06', '2025-10-14 17:34:06'),
 (72, NULL, NULL, 'delete', NULL, 14, 'User \"da\" archived', '2025-10-14 17:54:04', '2025-10-14 17:54:04'),
 (73, NULL, NULL, 'delete', NULL, 15, 'User \"Test\" archived', '2025-10-14 17:56:13', '2025-10-14 17:56:13'),
-(74, NULL, NULL, 'delete', NULL, 16, 'User \"Test2\" archived', '2025-10-14 18:12:08', '2025-10-14 18:12:08');
+(74, NULL, NULL, 'delete', NULL, 16, 'User \"Test2\" archived', '2025-10-14 18:12:08', '2025-10-14 18:12:08'),
+(75, NULL, 7, 'update', NULL, 1, 'Recipe \"Recipe Test\" updated', '2025-10-15 08:02:22', '2025-10-15 08:02:22'),
+(76, NULL, 7, 'update', NULL, 1, 'Recipe \"Recipe Test\" updated', '2025-10-15 08:09:25', '2025-10-15 08:09:25'),
+(77, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-15 08:09:30', '2025-10-15 08:09:30'),
+(78, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-15 08:09:33', '2025-10-15 08:09:33'),
+(79, 23, NULL, 'update', 38.00, 1, 'Item updated. Old stock: 38.00, New stock: 38.00', '2025-10-15 08:09:37', '2025-10-15 08:09:37'),
+(80, NULL, 7, 'update', NULL, 1, 'Recipe \"Recipe Test2\" updated', '2025-10-15 08:13:58', '2025-10-15 08:13:58'),
+(81, NULL, 7, 'delete', NULL, 1, 'Recipe \"Recipe Test2\" archived', '2025-10-15 08:18:04', '2025-10-15 08:18:04');
 
 -- --------------------------------------------------------
 
@@ -287,7 +294,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `role`, `remember_token`, `created_at`, `updated_at`, `last_login`, `is_deleted`, `deleted_at`) VALUES
-(1, 'manager', '$2b$10$Olv69dF2TM2yeIW1ghDgpeaBMGgeJ54Bq/Maj0YP1HwnuNRcjn2Ee', 'manager', NULL, '2025-10-01 08:26:40', '2025-10-14 17:19:45', '2025-10-14 17:19:45', 0, NULL),
+(1, 'manager', '$2b$10$Olv69dF2TM2yeIW1ghDgpeaBMGgeJ54Bq/Maj0YP1HwnuNRcjn2Ee', 'manager', NULL, '2025-10-01 08:26:40', '2025-10-15 07:04:56', '2025-10-15 07:04:56', 0, NULL),
 (2, 'Raymund', '$2b$10$x3FCn5qfOgDbA.q2IhcaH.QUuGqBg2n6nO.HE6exC6ZN4iaOzKMyW', 'barista', NULL, '2025-10-01 08:27:28', '2025-10-14 17:19:02', '2025-10-14 17:19:02', 0, NULL),
 (3, 'john', '$2b$10$lpaFhbuLVyxWW8bDMiA9EOnV5ZpbuMgPLuFAjVrlhMQxVJCEw1ecO', 'barista', NULL, '2025-10-01 11:54:20', '2025-10-04 12:21:11', NULL, 0, NULL),
 (7, 'aaron', '$2b$10$JOos3.0xYsC4zbjSpBJpeunNuwxYjPRPGUX2S0esYSJvPr3GbQxTm', 'barista', NULL, '2025-10-01 14:51:48', '2025-10-06 13:41:58', NULL, 0, NULL),
@@ -381,13 +388,13 @@ ALTER TABLE `recipes`
 -- AUTO_INCREMENT for table `recipe_ingredients`
 --
 ALTER TABLE `recipe_ingredients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
 
 --
 -- AUTO_INCREMENT for table `units`
