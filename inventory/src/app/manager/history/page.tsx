@@ -31,6 +31,8 @@ const ActivityHistory = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activities, setActivities] = useState<Transaction[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<Transaction[]>([]);
+
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,7 +78,7 @@ const ActivityHistory = () => {
 
   const fetchActivities = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/inventory/transactions/all', {
+      const response = await fetch('${API_BASE_URL}/api/inventory/transactions/all', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
