@@ -42,6 +42,8 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState<Transaction[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+  
   const confirmSignOut = () => {
     localStorage.removeItem('cafestock_token');
     localStorage.removeItem('cafestock_user');
@@ -97,7 +99,7 @@ const Dashboard = () => {
 
   const fetchInventoryData = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/inventory', {
+      const response = await fetch('${API_BASE_URL}/api/inventory', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -119,7 +121,7 @@ const Dashboard = () => {
 
   const fetchRecentActivity = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/inventory/recent-activity', {
+      const response = await fetch('${API_BASE_URL}/api/inventory/recent-activity', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
