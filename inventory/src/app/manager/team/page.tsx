@@ -344,7 +344,7 @@ const TeamManagement = () => {
             <div className="members-list">
               {baristas.length === 0 ? (
                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
-                  No baristas yet. Click "Add Barista" to create an account.
+                  No baristas yet. Click &quot;Add Barista&quot; to create an account.
                 </p>
               ) : (
                 baristas.map((barista) => (
@@ -719,7 +719,7 @@ const TeamManagement = () => {
             </div>
             <div>
               <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-                Are you sure you want to delete the barista account <strong>"{baristaToDelete.username}"</strong>? This action cannot be undone.
+                Are you sure you want to delete the barista account <strong>&quot;{baristaToDelete.username}&quot;</strong>? This action cannot be undone.
               </p>
               <div className="modal-actions">
                 <button
