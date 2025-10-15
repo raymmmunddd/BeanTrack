@@ -39,6 +39,7 @@ router.get('/', authenticateToken, async (req, res) => {
         i.minimum_stock as min_threshold,
         i.maximum_stock as max_threshold,
         i.description,
+        i.ordered,
         i.created_at,
         i.updated_at,
         CASE 
@@ -198,6 +199,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         i.minimum_stock as min_threshold,
         i.maximum_stock as max_threshold,
         i.description,
+        i.ordered,
         i.created_at,
         i.updated_at,
         CASE 

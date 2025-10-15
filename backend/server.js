@@ -11,6 +11,7 @@ const recipesRouter = require('./routes/recipes');
 const categoriesRoutes = require('./routes/categories');
 const unitsRoutes = require('./routes/units');
 const exportRoutes = require('./routes/export');
+const orderingRoutes = require('./routes/ordering');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/recipes', recipesRouter);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/units', unitsRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/ordering', orderingRoutes);
 
 // Test route
 app.get('/', (req, res) => {

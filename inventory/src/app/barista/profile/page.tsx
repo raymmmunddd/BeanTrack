@@ -209,6 +209,15 @@ const Profile = () => {
     });
   };
 
+  const isPasswordSectionComplete =
+    currentPassword.trim() !== '' &&
+    newPassword.trim() !== '' &&
+    confirmPassword.trim() !== '';
+
+  const canSave =
+    (user && newUsername.trim() !== user.username) || 
+    isPasswordSectionComplete;
+
   const getTimeSinceLastLogin = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -408,7 +417,7 @@ const Profile = () => {
                   <button 
                     type="submit" 
                     className="save-button"
-                    disabled={!isFormChanged()}
+                    disabled={!canSave}
                   >
                     Save Changes
                   </button>

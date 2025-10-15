@@ -1,4 +1,4 @@
-// history.tsx
+// history/page.tsx
 
 "use client"
 
@@ -15,10 +15,11 @@ interface User {
 
 interface Transaction {
   id: number;
-  item_name: string;
-  transaction_type: 'usage' | 'restock' | 'adjustment' | 'update' | 'delete' | 'added';
-  quantity: number;
-  unit_name: string;
+  item_name: string | null;
+  recipe_name: string | null;
+  transaction_type: 'usage' | 'restock' | 'adjustment' | 'update' | 'delete' | 'added' | 'archive' | 'restore' | 'password_reset' | 'username_change';
+  quantity: number | null;
+  unit_name: string | null;
   notes: string;
   created_at: string;
   username: string;
@@ -101,6 +102,7 @@ const ActivityHistory = () => {
     if (searchQuery) {
       filtered = filtered.filter(activity => 
         (activity.item_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (activity.recipe_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (activity.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (activity.notes?.toLowerCase() || '').includes(searchQuery.toLowerCase())
       );
@@ -150,15 +152,15 @@ const ActivityHistory = () => {
 
   const exportHistory = () => {
     const csvContent = [
-      ['Date', 'Time', 'User', 'Action', 'Item', 'Quantity', 'Unit', 'Notes'],
+      ['Date', 'Time', 'User', 'Action', 'Item/Recipe', 'Quantity', 'Unit', 'Notes'],
       ...filteredActivities.map(activity => [
         formatDate(activity.created_at),
         formatTime(activity.created_at),
         activity.username,
         activity.transaction_type,
-        activity.item_name,
-        activity.quantity,
-        activity.unit_name,
+        activity.item_name || activity.recipe_name || 'N/A',
+        activity.quantity || 'N/A',
+        activity.unit_name || 'N/A',
         activity.notes || ''
       ])
     ].map(row => row.join(',')).join('\n');
@@ -196,8 +198,12 @@ const ActivityHistory = () => {
       restock: { color: '#16a34a', label: 'Restock' },
       adjustment: { color: '#2563eb', label: 'Adjustment' },
       update: { color: '#e1bc42', label: 'Update' },
-      delete: { color: '#9ca3af', label: 'Delete' },
-      added: { color: '#775932', label: 'Add' }
+      delete: { color: '#ef4444', label: 'Delete' },
+      added: { color: '#775932', label: 'Add' },
+      archive: { color: '#f97316', label: 'Archive' },
+      restore: { color: '#10b981', label: 'Restore' },
+      password_reset: { color: '#8b5cf6', label: 'Password Reset' },
+      username_change: { color: '#06b6d4', label: 'Username Change' }
     };
     
     const badge = badges[type as keyof typeof badges] || badges.adjustment;
@@ -213,21 +219,100 @@ const ActivityHistory = () => {
     const type = transaction.transaction_type;
     const qty = transaction.quantity;
     const item = transaction.item_name;
+    const recipe = transaction.recipe_name;
     const unit = transaction.unit_name;
     
-    if (type === 'usage') {
-      return `Used ${qty} ${unit}(s) of ${item}`;
-    } else if (type === 'restock') {
-      return `Restocked ${qty} ${unit}(s) of ${item}`;
-    } else if (type === 'update') {
-      return `Updated ${item} to ${qty} ${unit}(s)`;
-    } else if (type === 'delete') {
-      return `Deleted ${qty} ${unit}(s) of ${item}`;
-    } else if (type === 'added') {
-      return `Added new item: ${item}`;
-    } else {
-      return `Adjusted ${item} stock by ${qty} ${unit}(s)`;
+    // User-related transactions
+    if (type === 'password_reset') {
+      return transaction.notes || 'Password reset';
     }
+    
+    if (type === 'username_change') {
+      return transaction.notes || 'Username changed';
+    }
+    
+    // Recipe-related transactions
+    if (recipe) {
+      if (type === 'usage') {
+        return `Used recipe: ${recipe}`;
+      } else if (type === 'added') {
+        return `Added new recipe: ${recipe}`;
+      } else if (type === 'update') {
+        return `Updated recipe: ${recipe}`;
+      } else if (type === 'archive') {
+        return `Archived recipe: ${recipe}`;
+      } else if (type === 'restore') {
+        return `Restored recipe: ${recipe}`;
+      } else if (type === 'delete') {
+        return `Deleted recipe: ${recipe}`;
+      }
+    }
+    
+    // Item-related transactions
+    if (item) {
+      if (type === 'usage') {
+        return `Used ${qty} ${unit}(s) of ${item}`;
+      } else if (type === 'restock') {
+        return `Restocked ${qty} ${unit}(s) of ${item}`;
+      } else if (type === 'update') {
+        return `Updated ${item} to ${qty} ${unit}(s)`;
+      } else if (type === 'delete') {
+        return `Deleted ${item}`;
+      } else if (type === 'added') {
+        return `Added new item: ${item}`;
+      } else if (type === 'archive') {
+        return `Archived ${item}`;
+      } else if (type === 'restore') {
+        return `Restored ${item}`;
+      } else if (type === 'adjustment') {
+        return `Adjusted ${item} stock by ${qty} ${unit}(s)`;
+      }
+    }
+    
+    return transaction.notes || 'Activity recorded';
+  };
+
+  const getTransactionMeta = (transaction: Transaction) => {
+    const meta = [];
+    
+    meta.push(
+      <React.Fragment key="user">
+        <span className="meta-label">User:</span>
+        <span className="meta-value">{transaction.username}</span>
+      </React.Fragment>
+    );
+    
+    if (transaction.item_name) {
+      meta.push(
+        <React.Fragment key="item">
+          <span className="meta-separator"></span>
+          <span className="meta-label">Item:</span>
+          <span className="meta-value">{transaction.item_name}</span>
+        </React.Fragment>
+      );
+    }
+    
+    if (transaction.recipe_name) {
+      meta.push(
+        <React.Fragment key="recipe">
+          <span className="meta-separator"></span>
+          <span className="meta-label">Recipe:</span>
+          <span className="meta-value">{transaction.recipe_name}</span>
+        </React.Fragment>
+      );
+    }
+    
+    if (transaction.quantity !== null && transaction.unit_name) {
+      meta.push(
+        <React.Fragment key="quantity">
+          <span className="meta-separator"></span>
+          <span className="meta-label">Quantity:</span>
+          <span className="meta-value">{transaction.quantity} {transaction.unit_name}</span>
+        </React.Fragment>
+      );
+    }
+    
+    return meta;
   };
 
   if (isLoading || !user) {
@@ -258,13 +343,6 @@ const ActivityHistory = () => {
               <h1 className="activity-title">Activity History</h1>
               <p className="activity-subtitle">Track all inventory changes and user activities</p>
             </div>
-            <button 
-              className="export-button"
-              onClick={exportHistory}
-            >
-              <Download className="button-icon" />
-              Export History
-            </button>
           </div>
 
           <div className="filters-card">
@@ -314,8 +392,9 @@ const ActivityHistory = () => {
                   <option value="restock">Restock</option>
                   <option value="added">Add</option>
                   <option value="update">Update</option>
+                  <option value="archive">Archive</option>
+                  <option value="restore">Restore</option>
                   <option value="delete">Delete</option>
-                  <option value="adjustment">Adjustment</option>
                 </select>
               </div>
 
@@ -369,14 +448,7 @@ const ActivityHistory = () => {
                         <h3 className="timeline-action">{getTransactionText(activity)}</h3>
                         
                         <div className="timeline-meta">
-                          <span className="meta-label">User:</span>
-                          <span className="meta-value">{activity.username}</span>
-                          <span className="meta-separator"></span>
-                          <span className="meta-label">Item:</span>
-                          <span className="meta-value">{activity.item_name}</span>
-                          <span className="meta-separator"></span>
-                          <span className="meta-label">Quantity:</span>
-                          <span className="meta-value">{activity.quantity} {activity.unit_name}</span>
+                          {getTransactionMeta(activity)}
                         </div>
                         
                         {activity.notes && (

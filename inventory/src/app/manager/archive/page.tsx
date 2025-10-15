@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../sidebar';
-import { Archive, RefreshCw, Trash2, AlertTriangle, Package, Coffee, Users, Clock } from 'lucide-react';
+import { Archive, RefreshCw, Trash2, AlertTriangle, Package, Coffee, Users, X, CheckCircle } from 'lucide-react';
 import './archive.css';
 
 interface User {
@@ -48,6 +48,97 @@ interface ArchivedUser {
   days_until_deletion: number;
 }
 
+interface ConfirmModalState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  type: 'warning' | 'danger';
+  onConfirm: () => void;
+}
+
+interface SuccessModalState {
+  isOpen: boolean;
+  message: string;
+}
+
+// Confirm Modal Component
+const ConfirmModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  type: 'warning' | 'danger';
+}> = ({ isOpen, onClose, onConfirm, title, message, type }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="archive-modal-overlay" onClick={onClose}>
+      <div className="archive-modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="archive-modal-header">
+          <AlertTriangle className={`archive-modal-icon ${type}`} />
+          <h2 className="archive-modal-title">{title}</h2>
+          <button className="archive-modal-close" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="archive-modal-body">
+          <p className="archive-modal-message">{message}</p>
+        </div>
+        <div className="archive-modal-footer">
+          <button className="archive-modal-button cancel" onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            className={`archive-modal-button confirm ${type}`} 
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+          >
+            {type === 'danger' ? 'Delete Permanently' : 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Success Modal Component
+const SuccessModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  message: string;
+}> = ({ isOpen, onClose, message }) => {
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="archive-modal-overlay" onClick={onClose}>
+      <div className="archive-modal-container success" onClick={(e) => e.stopPropagation()}>
+        <div className="archive-modal-header success">
+          <CheckCircle className="archive-modal-icon success" />
+          <h2 className="archive-modal-title">Success!</h2>
+          <button className="archive-modal-close" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="archive-modal-body">
+          <p className="archive-modal-message">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ArchiveManager = () => {
   const [activeTab, setActiveTab] = useState('archive');
   const [user, setUser] = useState<User | null>(null);
@@ -57,6 +148,20 @@ const ArchiveManager = () => {
   const [archivedItems, setArchivedItems] = useState<ArchivedItem[]>([]);
   const [archivedRecipes, setArchivedRecipes] = useState<ArchivedRecipe[]>([]);
   const [archivedUsers, setArchivedUsers] = useState<ArchivedUser[]>([]);
+
+  // Modal states
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: () => {}
+  });
+
+  const [successModal, setSuccessModal] = useState<SuccessModalState>({
+    isOpen: false,
+    message: ''
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('cafestock_token');
@@ -118,109 +223,132 @@ const ArchiveManager = () => {
   };
 
   const handleRestore = async (type: 'item' | 'recipe' | 'user', id: number, name: string) => {
-    if (!confirm(`Restore "${name}" from archive?`)) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'Restore Item',
+      message: `Are you sure you want to restore "${name}" from the archive?`,
+      type: 'warning',
+      onConfirm: async () => {
+        const token = localStorage.getItem('cafestock_token');
+        if (!token) return;
 
-    const token = localStorage.getItem('cafestock_token');
-    if (!token) return;
+        const endpoints = {
+          item: `http://localhost:3001/api/inventory/${id}/restore`,
+          recipe: `http://localhost:3001/api/recipes/${id}/restore`,
+          user: `http://localhost:3001/api/users/baristas/${id}/restore`
+        };
 
-    const endpoints = {
-      item: `http://localhost:3001/api/inventory/${id}/restore`,
-      recipe: `http://localhost:3001/api/recipes/${id}/restore`,
-      user: `http://localhost:3001/api/users/baristas/${id}/restore`
-    };
+        try {
+          const response = await fetch(endpoints[type], {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-    try {
-      const response = await fetch(endpoints[type], {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        alert(`${type.charAt(0).toUpperCase() + type.slice(1)} restored successfully`);
-        fetchArchived(token);
-      } else {
-        const error = await response.json();
-        alert(`Failed to restore: ${error.error}`);
+          if (response.ok) {
+            setSuccessModal({
+              isOpen: true,
+              message: `${type.charAt(0).toUpperCase() + type.slice(1)} restored successfully!`
+            });
+            fetchArchived(token);
+          } else {
+            const error = await response.json();
+            alert(`Failed to restore: ${error.error}`);
+          }
+        } catch (error) {
+          console.error('Error restoring:', error);
+          alert('Server error restoring item');
+        }
       }
-    } catch (error) {
-      console.error('Error restoring:', error);
-      alert('Server error restoring item');
-    }
+    });
   };
 
   const handlePermanentDelete = async (type: 'item' | 'recipe' | 'user', id: number, name: string) => {
-    if (!confirm(`Are you sure you want to PERMANENTLY delete "${name}"? This action cannot be undone!`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Permanent Deletion',
+      message: `Are you sure you want to PERMANENTLY delete "${name}"? This action cannot be undone!`,
+      type: 'danger',
+      onConfirm: async () => {
+        const token = localStorage.getItem('cafestock_token');
+        if (!token) return;
 
-    const token = localStorage.getItem('cafestock_token');
-    if (!token) return;
+        const endpoints = {
+          item: `http://localhost:3001/api/inventory/${id}/permanent`,
+          recipe: `http://localhost:3001/api/recipes/${id}/permanent`,
+          user: `http://localhost:3001/api/users/baristas/${id}/permanent`
+        };
 
-    const endpoints = {
-      item: `http://localhost:3001/api/inventory/${id}/permanent`,
-      recipe: `http://localhost:3001/api/recipes/${id}/permanent`,
-      user: `http://localhost:3001/api/users/baristas/${id}/permanent`
-    };
+        try {
+          const response = await fetch(endpoints[type], {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-    try {
-      const response = await fetch(endpoints[type], {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        alert(`${type.charAt(0).toUpperCase() + type.slice(1)} permanently deleted`);
-        fetchArchived(token);
-      } else {
-        const error = await response.json();
-        alert(`Failed to delete: ${error.error}`);
+          if (response.ok) {
+            setSuccessModal({
+              isOpen: true,
+              message: `${type.charAt(0).toUpperCase() + type.slice(1)} permanently deleted!`
+            });
+            fetchArchived(token);
+          } else {
+            const error = await response.json();
+            alert(`Failed to delete: ${error.error}`);
+          }
+        } catch (error) {
+          console.error('Error deleting:', error);
+          alert('Server error deleting item');
+        }
       }
-    } catch (error) {
-      console.error('Error deleting:', error);
-      alert('Server error deleting item');
-    }
+    });
   };
 
   const handleAutoCleanup = async () => {
-    if (!confirm('This will permanently delete all items that have been in the archive for more than 30 days. Continue?')) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Auto Cleanup',
+      message: 'This will permanently delete all items that have been in the archive for more than 30 days. Continue?',
+      type: 'danger',
+      onConfirm: async () => {
+        const token = localStorage.getItem('cafestock_token');
+        if (!token) return;
 
-    const token = localStorage.getItem('cafestock_token');
-    if (!token) return;
+        try {
+          const [itemsRes, recipesRes, usersRes] = await Promise.all([
+            fetch('http://localhost:3001/api/inventory/cleanup-archived', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch('http://localhost:3001/api/recipes/cleanup-archived', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch('http://localhost:3001/api/users/cleanup-archived', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            })
+          ]);
 
-    try {
-      const [itemsRes, recipesRes, usersRes] = await Promise.all([
-        fetch('http://localhost:3001/api/inventory/cleanup-archived', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('http://localhost:3001/api/recipes/cleanup-archived', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('http://localhost:3001/api/users/cleanup-archived', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
+          const results = await Promise.all([
+            itemsRes.ok ? itemsRes.json() : null,
+            recipesRes.ok ? recipesRes.json() : null,
+            usersRes.ok ? usersRes.json() : null
+          ]);
 
-      const results = await Promise.all([
-        itemsRes.ok ? itemsRes.json() : null,
-        recipesRes.ok ? recipesRes.json() : null,
-        usersRes.ok ? usersRes.json() : null
-      ]);
+          const totalDeleted = (results[0]?.items_deleted || 0) + 
+                              (results[1]?.recipes_deleted || 0) + 
+                              (results[2]?.users_deleted || 0);
 
-      const totalDeleted = (results[0]?.items_deleted || 0) + 
-                          (results[1]?.recipes_deleted || 0) + 
-                          (results[2]?.users_deleted || 0);
-
-      alert(`Cleanup completed! ${totalDeleted} item(s) permanently deleted.`);
-      fetchArchived(token);
-    } catch (error) {
-      console.error('Error during cleanup:', error);
-      alert('Server error during cleanup');
-    }
+          setSuccessModal({
+            isOpen: true,
+            message: `Cleanup completed! ${totalDeleted} item(s) permanently deleted.`
+          });
+          fetchArchived(token);
+        } catch (error) {
+          console.error('Error during cleanup:', error);
+          alert('Server error during cleanup');
+        }
+      }
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -470,6 +598,22 @@ const ArchiveManager = () => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
+
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        message={successModal.message}
+      />
     </div>
   );
 };
