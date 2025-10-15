@@ -494,7 +494,7 @@ export default function CafeInventory() {
           <div>
             <h1 className="inventory-title">Inventory</h1>
             <p className="inventory-subtitle">
-              Manage your cafe's stock levels and track usage
+              Manage your cafe&apos;s stock levels and track usage
             </p>
           </div>
 
