@@ -67,13 +67,15 @@ export default function LogUsage() {
     }
   }, [error])
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+  
   const formatNumber = (value: number) => (value % 1 === 0 ? Math.floor(value) : value)
 
   const fetchRecipes = async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/recipes', {
+      const response = await fetch('${API_BASE_URL}/api/recipes', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -97,7 +99,7 @@ export default function LogUsage() {
     try {
       setLoading(true)
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/inventory', {
+      const response = await fetch('${API_BASE_URL}/api/inventory', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -195,7 +197,7 @@ export default function LogUsage() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/inventory/log-recipe-usage', {
+      const response = await fetch('${API_BASE_URL}/api/inventory/log-recipe-usage', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -255,7 +257,7 @@ export default function LogUsage() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/inventory/log-manual-usage', {
+      const response = await fetch('${API_BASE_URL}/api/inventory/log-manual-usage', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
