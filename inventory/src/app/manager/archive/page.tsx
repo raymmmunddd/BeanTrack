@@ -61,6 +61,8 @@ interface SuccessModalState {
   message: string;
 }
 
+const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
 // Confirm Modal Component
 const ConfirmModal: React.FC<{
   isOpen: boolean;
@@ -192,13 +194,13 @@ const ArchiveManager = () => {
     setIsLoading(true);
     try {
       const [itemsRes, recipesRes, usersRes] = await Promise.all([
-        fetch('http://localhost:3001/api/inventory/archived', {
+        fetch('${API_BASE_URL}/api/inventory/archived', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:3001/api/recipes/archived', {
+        fetch('${API_BASE_URL}/api/recipes/archived', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:3001/api/users/baristas/archived', {
+        fetch('${API_BASE_URL}/api/users/baristas/archived', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -233,9 +235,9 @@ const ArchiveManager = () => {
         if (!token) return;
 
         const endpoints = {
-          item: `http://localhost:3001/api/inventory/${id}/restore`,
-          recipe: `http://localhost:3001/api/recipes/${id}/restore`,
-          user: `http://localhost:3001/api/users/baristas/${id}/restore`
+          item: `${API_BASE_URL}/api/inventory/${id}/restore`,
+          recipe: `${API_BASE_URL}/api/recipes/${id}/restore`,
+          user: `${API_BASE_URL}/api/users/baristas/${id}/restore`
         };
 
         try {
@@ -273,9 +275,9 @@ const ArchiveManager = () => {
         if (!token) return;
 
         const endpoints = {
-          item: `http://localhost:3001/api/inventory/${id}/permanent`,
-          recipe: `http://localhost:3001/api/recipes/${id}/permanent`,
-          user: `http://localhost:3001/api/users/baristas/${id}/permanent`
+          item: `${API_BASE_URL}/api/inventory/${id}/permanent`,
+          recipe: `${API_BASE_URL}/api/recipes/${id}/permanent`,
+          user: `${API_BASE_URL}/api/users/baristas/${id}/permanent`
         };
 
         try {
@@ -314,15 +316,15 @@ const ArchiveManager = () => {
 
         try {
           const [itemsRes, recipesRes, usersRes] = await Promise.all([
-            fetch('http://localhost:3001/api/inventory/cleanup-archived', {
+            fetch('${API_BASE_URL}/api/inventory/cleanup-archived', {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('http://localhost:3001/api/recipes/cleanup-archived', {
+            fetch('${API_BASE_URL}/api/recipes/cleanup-archived', {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('http://localhost:3001/api/users/cleanup-archived', {
+            fetch('${API_BASE_URL}/api/users/cleanup-archived', {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
             })
