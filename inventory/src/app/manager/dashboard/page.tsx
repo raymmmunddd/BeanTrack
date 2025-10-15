@@ -51,6 +51,8 @@ const Dashboard = () => {
   const [restockQuantity, setRestockQuantity] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
   const confirmSignOut = () => {
     localStorage.removeItem('cafestock_token');
     localStorage.removeItem('cafestock_user');
@@ -106,7 +108,7 @@ const Dashboard = () => {
 
   const fetchBaristaCount = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/users/baristas/count', {
+      const response = await fetch('${API_BASE_URL}/api/users/baristas/count', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -123,7 +125,7 @@ const Dashboard = () => {
 
   const fetchInventoryData = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/inventory', {
+      const response = await fetch('${API_BASE_URL}/api/inventory', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -147,7 +149,7 @@ const Dashboard = () => {
 
   const fetchRecentActivity = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/inventory/recent-activity-all', {
+      const response = await fetch('${API_BASE_URL}/api/inventory/recent-activity-all', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -174,7 +176,7 @@ const Dashboard = () => {
     const token = localStorage.getItem('cafestock_token');
 
     try {
-      const response = await fetch(`http://localhost:3001/api/ordering/${selectedItem.id}/order`, {
+      const response = await fetch(`${API_BASE_URL}/api/ordering/${selectedItem.id}/order`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +221,7 @@ const Dashboard = () => {
     const token = localStorage.getItem('cafestock_token');
 
     try {
-      const response = await fetch(`http://localhost:3001/api/ordering/${selectedItem.id}/restock`, {
+      const response = await fetch(`${API_BASE_URL}/api/ordering/${selectedItem.id}/restock`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
