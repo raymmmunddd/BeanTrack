@@ -71,6 +71,8 @@ export default function CafeInventory() {
   const [recipeValidationError, setRecipeValidationError] = useState('')
   const [inventoryView, setInventoryView] = useState<'items' | 'recipes'>('items')
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
   useEffect(() => {
     fetchInventory()
     fetchCategories()
@@ -81,7 +83,7 @@ export default function CafeInventory() {
   const fetchInventory = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/inventory', {
+      const response = await fetch('${API_BASE_URL}/api/inventory', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -103,7 +105,7 @@ export default function CafeInventory() {
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/categories', {
+      const response = await fetch('${API_BASE_URL}/api/categories', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -121,7 +123,7 @@ export default function CafeInventory() {
   const fetchUnits = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/units', {
+      const response = await fetch('${API_BASE_URL}/api/units', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -139,7 +141,7 @@ export default function CafeInventory() {
   const fetchRecipes = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/recipes', {
+      const response = await fetch('${API_BASE_URL}/api/recipes', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -210,7 +212,7 @@ export default function CafeInventory() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`http://localhost:3001/api/inventory/${itemToDelete.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/inventory/${itemToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -285,7 +287,7 @@ export default function CafeInventory() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`http://localhost:3001/api/inventory/${editingItem.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/inventory/${editingItem.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -332,7 +334,7 @@ export default function CafeInventory() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`http://localhost:3001/api/recipes/${recipeToDelete.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/recipes/${recipeToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -387,7 +389,7 @@ export default function CafeInventory() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`http://localhost:3001/api/recipes/${editingRecipe.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/recipes/${editingRecipe.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
