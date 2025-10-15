@@ -23,6 +23,8 @@ const validatePassword = (password: string) => {
   return hasUpperCase && hasLowerCase && hasNumber && hasSymbol;
 };
 
+const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [user, setUser] = useState<UserData | null>(null);
@@ -63,7 +65,7 @@ const Profile = () => {
 
   const fetchUserProfile = async (token: string, userId: number) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -142,7 +144,7 @@ const Profile = () => {
     try {
       // 1️⃣ Update username if changed
       if (newUsername !== user.username) {
-        const usernameRes = await fetch(`http://localhost:3001/api/users/${user.id}/username`, {
+        const usernameRes = await fetch(`${API_BASE_URL}/api/users/${user.id}/username`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -169,7 +171,7 @@ const Profile = () => {
 
       // 2️⃣ Update password if provided
       if (currentPassword && newPassword) {
-        const passwordRes = await fetch(`http://localhost:3001/api/users/${user.id}/password`, {
+        const passwordRes = await fetch(`${API_BASE_URL}/api/users/${user.id}/password`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
