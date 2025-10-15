@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 15, 2025 at 05:06 PM
+-- Generation Time: Oct 15, 2025 at 07:26 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -74,17 +74,17 @@ CREATE TABLE `items` (
 
 INSERT INTO `items` (`id`, `item_name`, `category_id`, `unit_id`, `current_stock`, `minimum_stock`, `maximum_stock`, `description`, `ordered`, `created_at`, `updated_at`, `is_deleted`, `deleted_at`) VALUES
 (18, 'Espresso Beans', 1, 1, 100.00, 10.00, 100.00, 'Premium roasted espresso beans', 0, '2025-10-01 14:01:19', '2025-10-15 14:02:05', 0, NULL),
-(19, 'Ground Coffee Blend', 1, 1, 3.00, 5.00, 80.00, 'House blend ground coffee', 0, '2025-10-01 14:01:19', '2025-10-14 00:50:38', 0, NULL),
+(19, 'Ground Coffee Blend', 1, 1, 3.00, 5.00, 80.00, 'House blend ground coffee', 0, '2025-10-01 14:01:19', '2025-10-15 16:40:22', 0, NULL),
 (20, 'Whole Milk', 2, 2, 50.00, 5.00, 50.00, 'Fresh whole milk for lattes and cappuccinos', 0, '2025-10-01 14:52:32', '2025-10-15 14:04:19', 0, NULL),
 (21, 'Whipping Cream', 2, 2, 0.00, 2.00, 30.00, 'Cream for specialty drinks', 0, '2025-10-01 14:52:32', '2025-10-15 14:05:29', 0, NULL),
 (22, 'White Sugar', 3, 1, 4.00, 5.00, 60.00, 'Refined white sugar', 0, '2025-10-01 14:52:32', '2025-10-15 14:49:05', 0, NULL),
 (23, 'Brown Sugar', 3, 1, 40.00, 3.00, 40.00, 'Brown sugar for coffee and pastries', 0, '2025-10-01 14:52:32', '2025-10-15 14:00:42', 0, NULL),
 (24, 'Paper Cups (12oz)', 4, 3, 150.00, 50.00, 500.00, 'Takeaway paper cups', 0, '2025-10-01 14:52:32', '2025-10-15 14:04:38', 0, NULL),
 (25, 'Cup Lids (12oz)', 4, 3, 497.00, 50.00, 500.00, 'Lids for takeaway cups', 0, '2025-10-01 14:52:32', '2025-10-14 17:19:27', 0, NULL),
-(26, 'Vanilla Syrup', 5, 4, 0.00, 3.00, 30.00, 'Classic vanilla flavoring syrup', 0, '2025-10-01 14:52:32', '2025-10-15 14:05:22', 0, NULL),
+(26, 'Vanilla Syrup', 5, 4, 0.00, 3.00, 30.00, 'Classic vanilla flavoring syrup', 1, '2025-10-01 14:52:32', '2025-10-15 17:06:30', 0, NULL),
 (27, 'Caramel Syrup', 5, 4, 25.00, 5.00, 25.00, 'Rich caramel syrup for drinks', 0, '2025-10-01 14:52:32', '2025-10-15 14:03:21', 1, '2025-10-15 22:03:21'),
-(28, 'Espresso Machine Filter', 6, 3, 1.00, 1.00, 10.00, 'Spare filters for espresso machine', 0, '2025-10-01 14:52:32', '2025-10-15 14:04:47', 0, NULL),
-(29, 'Coffee Grinder Burr', 6, 3, 1.00, 1.00, 8.00, 'Replacement burr for coffee grinder', 1, '2025-10-01 14:52:32', '2025-10-15 14:52:27', 0, NULL),
+(28, 'Espresso Machine Filter', 6, 3, 1.00, 1.00, 10.00, 'Spare filters for espresso machine', 1, '2025-10-01 14:52:32', '2025-10-15 16:04:19', 0, NULL),
+(29, 'Coffee Grinder Burr', 6, 3, 5.00, 1.00, 8.00, 'Replacement burr for coffee grinder', 0, '2025-10-01 14:52:32', '2025-10-15 16:40:48', 0, NULL),
 (30, 'Cocoa Powder', 7, 8, 20.00, 2.00, 20.00, 'Used for hot chocolate and mochas', 0, '2025-10-01 14:52:32', '2025-10-15 14:03:53', 0, NULL),
 (35, 'Test', 2, 4, 1.00, 1.00, 2.00, '1', 0, '2025-10-14 17:33:54', '2025-10-14 17:34:06', 1, '2025-10-15 01:34:06');
 
@@ -297,7 +297,21 @@ INSERT INTO `transactions` (`id`, `item_id`, `item_name`, `recipe_id`, `recipe_n
 (128, NULL, NULL, 1, NULL, 'update', NULL, 1, NULL, 'Recipe \"Caffe Latte\" updated', '2025-10-15 14:06:34', '2025-10-15 14:06:34'),
 (129, 22, NULL, NULL, NULL, 'update', 15.00, 1, NULL, 'Item updated. Old stock: 34.00, New stock: 15', '2025-10-15 14:49:01', '2025-10-15 14:49:01'),
 (130, 22, NULL, NULL, NULL, 'update', 4.00, 1, NULL, 'Item updated. Old stock: 15.00, New stock: 4', '2025-10-15 14:49:05', '2025-10-15 14:49:05'),
-(131, 29, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Coffee Grinder Burr\" as ordered', '2025-10-15 14:52:27', '2025-10-15 14:52:27');
+(131, 29, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Coffee Grinder Burr\" as ordered', '2025-10-15 14:52:27', '2025-10-15 14:52:27'),
+(132, 28, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Espresso Machine Filter\" as ordered', '2025-10-15 16:04:19', '2025-10-15 16:04:19'),
+(133, 29, NULL, NULL, NULL, 'restock', 2.00, 1, NULL, 'Item restocked. Old stock: 1.00, Added: 2, New stock: 1.002', '2025-10-15 16:20:59', '2025-10-15 16:20:59'),
+(134, 29, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Coffee Grinder Burr\" as ordered', '2025-10-15 16:24:34', '2025-10-15 16:24:34'),
+(135, 29, NULL, NULL, NULL, 'restock', 2.00, 1, NULL, 'Item restocked. Old stock: 1.00, Added: 2, New stock: 3', '2025-10-15 16:27:59', '2025-10-15 16:27:59'),
+(136, 29, NULL, NULL, NULL, 'update', 1.00, 1, NULL, 'Item updated. Old stock: 3.00, New stock: 1', '2025-10-15 16:28:08', '2025-10-15 16:28:08'),
+(137, 29, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Coffee Grinder Burr\" as ordered', '2025-10-15 16:28:15', '2025-10-15 16:28:15'),
+(138, 29, NULL, NULL, NULL, 'restock', 3.00, 1, NULL, 'Item restocked. Old stock: 1.00, Added: 3, New stock: 4', '2025-10-15 16:28:23', '2025-10-15 16:28:23'),
+(139, 19, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Ground Coffee Blend\" as ordered', '2025-10-15 16:38:48', '2025-10-15 16:38:48'),
+(140, 19, NULL, NULL, NULL, 'restock', 4.00, 1, NULL, 'Item restocked. Old stock: 3.00, Added: 4, New stock: 7', '2025-10-15 16:39:05', '2025-10-15 16:39:05'),
+(141, 19, NULL, NULL, NULL, 'update', 3.00, 1, NULL, 'Item updated. Old stock: 7.00, New stock: 3', '2025-10-15 16:40:22', '2025-10-15 16:40:22'),
+(142, 29, NULL, NULL, NULL, 'update', 1.00, 1, NULL, 'Item updated. Old stock: 4.00, New stock: 1', '2025-10-15 16:40:27', '2025-10-15 16:40:27'),
+(143, 29, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Coffee Grinder Burr\" as ordered', '2025-10-15 16:40:40', '2025-10-15 16:40:40'),
+(144, 29, NULL, NULL, NULL, 'restock', 4.00, 1, NULL, 'Item restocked. Old stock: 1.00, Added: 4, New stock: 5', '2025-10-15 16:40:48', '2025-10-15 16:40:48'),
+(145, 26, NULL, NULL, NULL, 'update', NULL, 1, NULL, 'Marked \"Vanilla Syrup\" as ordered', '2025-10-15 17:06:30', '2025-10-15 17:06:30');
 
 -- --------------------------------------------------------
 
@@ -348,8 +362,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `role`, `remember_token`, `created_at`, `updated_at`, `last_login`, `is_deleted`, `deleted_at`) VALUES
-(1, 'manager', '$2b$10$Olv69dF2TM2yeIW1ghDgpeaBMGgeJ54Bq/Maj0YP1HwnuNRcjn2Ee', 'manager', NULL, '2025-10-01 08:26:40', '2025-10-15 14:48:28', '2025-10-15 14:48:28', 0, NULL),
-(2, 'Raymund', '$2b$10$x3FCn5qfOgDbA.q2IhcaH.QUuGqBg2n6nO.HE6exC6ZN4iaOzKMyW', 'barista', NULL, '2025-10-01 08:27:28', '2025-10-15 14:08:03', '2025-10-15 14:08:03', 0, NULL),
+(1, 'manager', '$2b$10$Olv69dF2TM2yeIW1ghDgpeaBMGgeJ54Bq/Maj0YP1HwnuNRcjn2Ee', 'manager', NULL, '2025-10-01 08:26:40', '2025-10-15 17:02:14', '2025-10-15 17:02:14', 0, NULL),
+(2, 'Raymund', '$2b$10$x3FCn5qfOgDbA.q2IhcaH.QUuGqBg2n6nO.HE6exC6ZN4iaOzKMyW', 'barista', NULL, '2025-10-01 08:27:28', '2025-10-15 17:06:46', '2025-10-15 17:06:46', 0, NULL),
 (3, 'john', '$2b$10$lpaFhbuLVyxWW8bDMiA9EOnV5ZpbuMgPLuFAjVrlhMQxVJCEw1ecO', 'barista', NULL, '2025-10-01 11:54:20', '2025-10-04 12:21:11', NULL, 0, NULL),
 (7, 'aaron', '$2b$10$JOos3.0xYsC4zbjSpBJpeunNuwxYjPRPGUX2S0esYSJvPr3GbQxTm', 'barista', NULL, '2025-10-01 14:51:48', '2025-10-06 13:41:58', NULL, 0, NULL),
 (10, 'dada', '$2b$10$Bx3P8V6ioYwO4vaa0TBX6eZBDHsqa6nwNcpipyXY1fuDQlDkXxiji', 'barista', NULL, '2025-10-08 11:33:25', '2025-10-13 16:38:19', NULL, 1, '2025-10-14 00:38:19'),
@@ -449,7 +463,7 @@ ALTER TABLE `recipe_ingredients`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=132;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=146;
 
 --
 -- AUTO_INCREMENT for table `units`

@@ -220,12 +220,12 @@ const Dashboard = () => {
 
     try {
       const response = await fetch(`http://localhost:3001/api/ordering/${selectedItem.id}/restock`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ quantity: parseFloat(restockQuantity) })
+        body: JSON.stringify({ current_stock: parseFloat(restockQuantity) })
       });
 
       if (response.ok) {

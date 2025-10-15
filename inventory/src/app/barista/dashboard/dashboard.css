@@ -61,6 +61,18 @@
   background-color: #5d4426;
 }
 
+.ordered {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #888888;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
 .button-icon {
   width: 1.25rem;
   height: 1.25rem;

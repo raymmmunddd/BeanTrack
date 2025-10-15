@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../sidebar';
-import { Package, Plus, AlertTriangle, Clock, X, XCircle, AlertCircle, CheckCircle, MinusCircle } from 'lucide-react';
+import { Package, Plus, AlertTriangle, Clock, X, XCircle, AlertCircle, CheckCircle, MinusCircle, Truck } from 'lucide-react';
 import './dashboard.css';
 
 interface User {
@@ -20,6 +20,7 @@ interface InventoryItem {
   min_threshold: number;
   max_threshold: number;
   status: 'healthy' | 'medium' | 'low' | 'out';
+  ordered?: number;
 }
 
 interface Transaction {
@@ -265,14 +266,30 @@ const Dashboard = () => {
                 ) : (
                   lowStockItems.map((item) => (
                     <div key={item.id} className="low-stock-item" data-status={item.status}>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <h3 className="item-name">{item.name}</h3>
                         <p className="item-remaining">
                           {item.current_quantity} {item.unit} remaining
                           (Min: {item.min_threshold}, Max: {item.max_threshold})
                         </p>
                       </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                      {item.ordered === 1 && ( 
+                        <div>
+                            <span 
+                              className="status-badge"
+                              style={{ 
+                                color: '#0ea5e9',
+                                backgroundColor: '#0ea5e915',
+                            }}
+                            >
+                              <Truck className='badge-icon' />
+                              Ordered 
+                            </span>
+                        </div>
+                      )}
                       {getStatusBadge(item.status)}
+                      </div>
                     </div>
                   ))
                 )}
