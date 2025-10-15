@@ -31,10 +31,12 @@ export default function CafeInventory() {
     fetchInventory()
   }, [])
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
   const fetchInventory = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/inventory', {
+      const response = await fetch('${API_BASE_URL}/api/inventory', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
