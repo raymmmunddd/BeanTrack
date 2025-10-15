@@ -50,6 +50,8 @@ export default function AddItemsRecipes() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
 
+  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+  
   // Error states
   const [itemError, setItemError] = useState<ErrorState>({ show: false, message: '', type: '' })
   const [recipeError, setRecipeError] = useState<ErrorState>({ show: false, message: '', type: '' })
@@ -87,13 +89,13 @@ export default function AddItemsRecipes() {
       const token = localStorage.getItem('cafestock_token')
       
       const [categoriesRes, unitsRes, itemsRes] = await Promise.all([
-        fetch('http://localhost:3001/api/categories', {
+        fetch('${API_BASE_URL}/api/categories', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:3001/api/units', {
+        fetch('${API_BASE_URL}/api/units', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:3001/api/inventory', {
+        fetch('${API_BASE_URL}/api/inventory', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ])
@@ -161,7 +163,7 @@ export default function AddItemsRecipes() {
     
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/inventory', {
+      const response = await fetch('${API_BASE_URL}/api/inventory', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -259,7 +261,7 @@ export default function AddItemsRecipes() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('http://localhost:3001/api/recipes', {
+      const response = await fetch('${API_BASE_URL}/api/recipes', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
