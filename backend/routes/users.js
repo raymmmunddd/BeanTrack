@@ -350,9 +350,10 @@ router.post('/cleanup-archived', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.id;
+    const tokenUserId = req.user.userId || req.user.id;
 
     // Verify user is accessing their own profile or is a manager
-    if (req.user.id !== parseInt(userId) && req.user.role !== 'manager') {
+    if (tokenUserId !== parseInt(userId) && req.user.role !== 'manager') {
       return res.status(403).json({ 
         error: 'Access denied'
       });
