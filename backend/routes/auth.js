@@ -43,12 +43,12 @@ router.post('/signup', async (req, res) => {
     }
 
     // Check if username already exists
-    const [existingUsers] = await db.query(
-      'SELECT id FROM users WHERE username = ?',
+    const existingUsers = await db.query(
+      'SELECT id FROM users WHERE username = $1',
       [username]
     );
 
-    if (existingUsers.length > 0) {
+    if (existingUsers.rows.length > 0) {
       return res.status(409).json({ 
         error: 'Username already exists' 
       });
@@ -58,15 +58,17 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user (role is automatically 'barista' by default)
-    const [result] = await db.query(
-      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+    const result = await db.query(
+      'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id',
       [username, hashedPassword, 'barista']
     );
+
+    const userId = result.rows[0].id;
 
     // Create JWT token
     const token = jwt.sign(
       { 
-        id: result.insertId, 
+        id: userId, 
         username: username, 
         role: 'barista' 
       },
@@ -78,7 +80,7 @@ router.post('/signup', async (req, res) => {
       message: 'Account created successfully',
       token,
       user: {
-        id: result.insertId,
+        id: userId,
         username: username,
         role: 'barista'
       }
@@ -105,19 +107,19 @@ router.post('/signin', async (req, res) => {
     }
 
     // Find user by username
-    const [users] = await db.query(
-      'SELECT id, username, password, role FROM users WHERE username = ?',
+    const users = await db.query(
+      'SELECT id, username, password, role FROM users WHERE username = $1',
       [username]
     );
 
     // Check if user exists
-    if (users.length === 0) {
+    if (users.rows.length === 0) {
       return res.status(401).json({ 
         error: 'Invalid username or password' 
       });
     }
 
-    const user = users[0];
+    const user = users.rows[0];
 
     // Verify password
     const passwordMatch = await bcrypt.compare(password, user.password);
@@ -130,7 +132,7 @@ router.post('/signin', async (req, res) => {
 
     // Update last login time
     await db.query(
-      'UPDATE users SET last_login = NOW() WHERE id = ?',
+      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
 
