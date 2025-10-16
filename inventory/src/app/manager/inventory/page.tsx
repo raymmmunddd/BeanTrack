@@ -463,11 +463,33 @@ const fetchRecipes = async () => {
   }
 
 const updateRecipeIngredient = (index: number, field: string, value: any) => {
-  if (!editingRecipe) return
+  console.log('=== updateRecipeIngredient START ===');
+  console.log('index:', index);
+  console.log('field:', field);
+  console.log('value:', value, 'type:', typeof value);
+  console.log('editingRecipe:', editingRecipe);
+  console.log('items array length:', items.length);
+  console.log('First 3 items:', items.slice(0, 3).map(i => ({ id: i.id, name: i.name })));
+  
+  if (!editingRecipe) {
+    console.log('No editingRecipe, returning');
+    return;
+  }
+  
   const newIngredients = [...editingRecipe.ingredients]
+  console.log('newIngredients before update:', newIngredients[index]);
+  
   if (field === 'item_id') {
     const itemId = parseInt(value)
-    const item = items.find(i => i.id === itemId)
+    console.log('Parsed itemId:', itemId, 'type:', typeof itemId);
+    
+    const item = items.find(i => {
+      console.log('Comparing:', i.id, 'type:', typeof i.id, 'with', itemId);
+      return i.id === itemId;
+    })
+    
+    console.log('Found item:', item);
+    
     if (item) {
       newIngredients[index] = {
         ...newIngredients[index],
@@ -478,6 +500,9 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
         minimum_stock: item.min_threshold,
         maximum_stock: item.max_threshold
       }
+      console.log('Updated ingredient:', newIngredients[index]);
+    } else {
+      console.log('ITEM NOT FOUND!');
     }
   } else if (field === 'quantity') {
     newIngredients[index] = {
@@ -485,10 +510,15 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
       quantity: parseFloat(value) || 0
     }
   }
-  setEditingRecipe({
+  
+  const newRecipeState = {
     ...editingRecipe,
     ingredients: newIngredients
-  })
+  }
+  
+  console.log('About to call setEditingRecipe with:', newRecipeState);
+  setEditingRecipe(newRecipeState)
+  console.log('=== updateRecipeIngredient END ===');
 }
   
 const getAvailableItemsForRecipe = (currentIndex: number) => {
