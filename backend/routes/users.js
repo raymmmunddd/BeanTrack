@@ -28,11 +28,11 @@ const authenticateToken = (req, res, next) => {
 // Get total baristas (exclude soft-deleted)
 router.get('/baristas/count', authenticateToken, async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT COUNT(*) as total FROM users WHERE role = 'barista' AND is_deleted = 0`
+    const { rows } = await db.query(
+      `SELECT COUNT(*) as total FROM users WHERE role = 'barista' AND is_deleted = false`
     );
 
-    res.json({ total: rows[0].total });
+    res.json({ total: parseInt(rows[0].total) });
   } catch (error) {
     console.error('Error fetching barista count:', error);
     res.status(500).json({ error: 'Server error fetching barista count' });
@@ -46,10 +46,10 @@ router.get('/baristas', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const [rows] = await db.query(
+    const { rows } = await db.query(
       `SELECT id, username, role, created_at, last_login
        FROM users 
-       WHERE role = 'barista' AND is_deleted = 0
+       WHERE role = 'barista' AND is_deleted = false
        ORDER BY created_at DESC`
     );
 
@@ -67,16 +67,16 @@ router.get('/baristas/archived', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const [rows] = await db.query(
+    const { rows } = await db.query(
       `SELECT 
         id, 
         username, 
         role, 
         created_at, 
         deleted_at,
-        DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW()) as days_until_deletion
+        EXTRACT(DAY FROM (deleted_at + INTERVAL '30 days' - NOW())) as days_until_deletion
        FROM users 
-       WHERE role = 'barista' AND is_deleted = 1
+       WHERE role = 'barista' AND is_deleted = true
        ORDER BY deleted_at DESC`
     );
 
@@ -101,13 +101,13 @@ router.post('/baristas', authenticateToken, async (req, res) => {
     }
 
     // Check if username exists (including soft-deleted)
-    const [existing] = await db.query(
-      `SELECT id, is_deleted FROM users WHERE username = ?`,
+    const { rows: existing } = await db.query(
+      `SELECT id, is_deleted FROM users WHERE username = $1`,
       [username]
     );
 
     if (existing.length > 0) {
-      if (existing[0].is_deleted === 1) {
+      if (existing[0].is_deleted === true) {
         return res.status(409).json({ error: 'Username exists in archive. Please restore or use a different username' });
       }
       return res.status(409).json({ error: 'Username already exists' });
@@ -118,7 +118,7 @@ router.post('/baristas', authenticateToken, async (req, res) => {
 
     await db.query(
       `INSERT INTO users (username, password, role, created_at) 
-       VALUES (?, ?, 'barista', NOW())`,
+       VALUES ($1, $2, 'barista', NOW())`,
       [username, hashedPassword]
     );
 
@@ -144,7 +144,7 @@ router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
     }
 
     // Ensure the user exists and is a barista and not deleted
-    const [rows] = await db.query(`SELECT id, role FROM users WHERE id = ? AND is_deleted = 0`, [id]);
+    const { rows } = await db.query(`SELECT id, role FROM users WHERE id = $1 AND is_deleted = false`, [id]);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -157,8 +157,8 @@ router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
 
     await db.query(
       `UPDATE users 
-       SET password = ?, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
+       SET password = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2`,
       [hashedPassword, id]
     );
 
@@ -171,178 +171,178 @@ router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
 
 // Soft delete barista (manager only) - Archive
 router.delete('/baristas/:id', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
     const { id } = req.params;
 
     // Prevent deleting manager accounts and check if not already deleted
-    const [rows] = await connection.query(`SELECT username, role FROM users WHERE id = ? AND is_deleted = 0`, [id]);
+    const { rows } = await client.query(`SELECT username, role FROM users WHERE id = $1 AND is_deleted = false`, [id]);
     if (rows.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'User not found' });
     }
     if (rows[0].role === 'manager') {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Cannot delete a manager account' });
     }
 
     const username = rows[0].username;
 
     // Log transaction
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (user_id, transaction_type, notes)
-      VALUES (?, 'delete', ?)
-    `, [id, `User "${username}" archived`]);
+      VALUES ($1, $2, $3)
+    `, [id, 'delete', `User "${username}" archived`]);
 
     // Soft delete
-    await connection.query(`
+    await client.query(`
       UPDATE users 
-      SET is_deleted = 1, deleted_at = NOW() 
-      WHERE id = ?
+      SET is_deleted = true, deleted_at = NOW() 
+      WHERE id = $1
     `, [id]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Barista account archived successfully' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error archiving barista:', error);
     res.status(500).json({ error: 'Server error archiving barista' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Restore archived barista (manager only)
 router.post('/baristas/:id/restore', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
     const { id } = req.params;
 
-    const [rows] = await connection.query(`SELECT username FROM users WHERE id = ? AND is_deleted = 1`, [id]);
+    const { rows } = await client.query(`SELECT username FROM users WHERE id = $1 AND is_deleted = true`, [id]);
     if (rows.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Archived user not found' });
     }
 
     const username = rows[0].username;
 
     // Restore user
-    await connection.query(`
+    await client.query(`
       UPDATE users 
-      SET is_deleted = 0, deleted_at = NULL 
-      WHERE id = ?
+      SET is_deleted = false, deleted_at = NULL 
+      WHERE id = $1
     `, [id]);
 
     // Log transaction
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (user_id, transaction_type, notes)
-      VALUES (?, 'restock', ?)
-    `, [id, `User "${username}" restored from archive`]);
+      VALUES ($1, $2, $3)
+    `, [id, 'restock', `User "${username}" restored from archive`]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Barista account restored successfully' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error restoring barista:', error);
     res.status(500).json({ error: 'Server error restoring barista' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Permanently delete archived barista (manager only)
 router.delete('/baristas/:id/permanent', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
     const { id } = req.params;
 
-    const [rows] = await connection.query(`SELECT username FROM users WHERE id = ? AND is_deleted = 1`, [id]);
+    const { rows } = await client.query(`SELECT username FROM users WHERE id = $1 AND is_deleted = true`, [id]);
     if (rows.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Archived user not found' });
     }
 
     const username = rows[0].username;
 
     // Log transaction
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (user_id, transaction_type, notes)
-      VALUES (?, 'delete', ?)
-    `, [id, `User "${username}" permanently deleted from archive`]);
+      VALUES ($1, $2, $3)
+    `, [id, 'delete', `User "${username}" permanently deleted from archive`]);
 
     // Permanently delete
-    await connection.query(`DELETE FROM users WHERE id = ?`, [id]);
+    await client.query(`DELETE FROM users WHERE id = $1`, [id]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Barista account permanently deleted' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error permanently deleting barista:', error);
     res.status(500).json({ error: 'Server error permanently deleting barista' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Auto-cleanup archived users older than 30 days (cron job endpoint)
 router.post('/cleanup-archived', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
-    const [usersToDelete] = await connection.query(`
+    const { rows: usersToDelete } = await client.query(`
       SELECT id, username
       FROM users 
-      WHERE is_deleted = 1 
-      AND deleted_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      WHERE is_deleted = true 
+      AND deleted_at <= NOW() - INTERVAL '30 days'
     `);
 
     for (const user of usersToDelete) {
-      await connection.query(`
+      await client.query(`
         INSERT INTO transactions (user_id, transaction_type, notes)
-        VALUES (?, 'delete', ?)
-      `, [user.id, `User "${user.username}" auto-deleted after 30 days in archive`]);
+        VALUES ($1, $2, $3)
+      `, [user.id, 'delete', `User "${user.username}" auto-deleted after 30 days in archive`]);
 
-      await connection.query(`DELETE FROM users WHERE id = ?`, [user.id]);
+      await client.query(`DELETE FROM users WHERE id = $1`, [user.id]);
     }
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ 
       message: 'Cleanup completed',
       users_deleted: usersToDelete.length
     });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error cleaning up archived users:', error);
     res.status(500).json({ error: 'Server error cleaning up users' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
@@ -358,10 +358,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    const [rows] = await db.query(
+    const { rows } = await db.query(
       `SELECT id, username, role, created_at, updated_at 
        FROM users 
-       WHERE id = ? AND is_deleted = 0`,
+       WHERE id = $1 AND is_deleted = false`,
       [userId]
     );
 
@@ -399,8 +399,8 @@ router.put('/:id/password', authenticateToken, async (req, res) => {
     }
 
     // Get current user password
-    const [rows] = await db.query(
-      `SELECT password FROM users WHERE id = ? AND is_deleted = 0`,
+    const { rows } = await db.query(
+      `SELECT password FROM users WHERE id = $1 AND is_deleted = false`,
       [userId]
     );
 
@@ -420,8 +420,8 @@ router.put('/:id/password', authenticateToken, async (req, res) => {
     // Update password and updated_at timestamp
     await db.query(
       `UPDATE users 
-       SET password = ?, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
+       SET password = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2`,
       [hashedPassword, userId]
     );
 
@@ -448,8 +448,8 @@ router.put('/:id/username', authenticateToken, async (req, res) => {
     }
 
     // Check if username is already taken (exclude soft-deleted and current user)
-    const [existing] = await db.query(
-      `SELECT id FROM users WHERE username = ? AND id != ? AND is_deleted = 0`, 
+    const { rows: existing } = await db.query(
+      `SELECT id FROM users WHERE username = $1 AND id != $2 AND is_deleted = false`, 
       [username, userId]
     );
     if (existing.length > 0) {
@@ -458,7 +458,7 @@ router.put('/:id/username', authenticateToken, async (req, res) => {
 
     // Update username
     await db.query(
-      `UPDATE users SET username = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE users SET username = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
       [username, userId]
     );
 
