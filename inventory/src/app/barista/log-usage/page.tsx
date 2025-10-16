@@ -464,7 +464,7 @@ const fetchInventoryItems = async () => {
                               <div className="stock-value-container">
                                 <span className="stock-value">
                                   {item.item_id > 0 
-                                    ? formatNumber(parseFloat(String(inventoryItems.find(i => i.id === item.item_id.toString())?.current_quantity || '0')))
+                                    ? formatNumber(parseFloat(inventoryItems.find(i => String(i.id) === String(item.item_id))?.current_quantity as any || '0'))
                                     : '-'}
                                 </span>
                               </div>
