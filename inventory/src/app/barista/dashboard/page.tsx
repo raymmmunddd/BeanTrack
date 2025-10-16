@@ -99,7 +99,7 @@ const Dashboard = () => {
 
   const fetchInventoryData = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/inventory', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -121,7 +121,7 @@ const Dashboard = () => {
 
   const fetchRecentActivity = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/inventory/recent-activity', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory/recent-activity`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -347,7 +347,7 @@ const Dashboard = () => {
 
             <div className="modal-body">
               <p className="logout-warning">Are you sure you want to sign out?</p>
-              <p className="logout-subtext">You’ll need to log in again to access your account.</p>
+              <p className="logout-subtext">You'll need to log in again to access your account.</p>
             </div>
 
             <div className="modal-footer">
