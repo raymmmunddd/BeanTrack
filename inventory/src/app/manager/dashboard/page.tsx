@@ -108,7 +108,7 @@ const Dashboard = () => {
 
   const fetchBaristaCount = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/users/baristas/count', {
+      const response = await fetch(`${API_BASE_URL}/api/users/baristas/count`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -125,7 +125,7 @@ const Dashboard = () => {
 
   const fetchInventoryData = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/inventory', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -149,7 +149,7 @@ const Dashboard = () => {
 
   const fetchRecentActivity = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/inventory/recent-activity-all', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory/recent-activity-all`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
