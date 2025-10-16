@@ -26,15 +26,15 @@ const authenticateToken = (req, res, next) => {
 // ✅ Get all recipes with ingredients (with full status logic)
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const [recipes] = await db.query(`
+    const { rows: recipes } = await db.query(`
       SELECT id, recipe_name AS name
       FROM recipes
-      WHERE is_deleted = 0
+      WHERE is_deleted = false
       ORDER BY recipe_name ASC
     `);
 
     for (let recipe of recipes) {
-      const [ingredients] = await db.query(`
+      const { rows: ingredients } = await db.query(`
         SELECT 
           ri.item_id,
           i.item_name,
@@ -52,7 +52,7 @@ router.get('/', authenticateToken, async (req, res) => {
         FROM recipe_ingredients ri
         JOIN items i ON ri.item_id = i.id
         JOIN units u ON i.unit_id = u.id
-        WHERE ri.recipe_id = ? AND i.is_deleted = 0
+        WHERE ri.recipe_id = $1 AND i.is_deleted = false
         ORDER BY i.item_name ASC
       `, [recipe.id]);
 
@@ -73,19 +73,19 @@ router.get('/archived', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    const [recipes] = await db.query(`
+    const { rows: recipes } = await db.query(`
       SELECT 
         id, 
         recipe_name as name,
         deleted_at,
-        DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW()) as days_until_deletion
+        EXTRACT(DAY FROM (deleted_at + INTERVAL '30 days' - NOW())) as days_until_deletion
       FROM recipes
-      WHERE is_deleted = 1
+      WHERE is_deleted = true
       ORDER BY deleted_at DESC
     `);
 
     for (let recipe of recipes) {
-      const [ingredients] = await db.query(`
+      const { rows: ingredients } = await db.query(`
         SELECT 
           ri.item_id,
           i.item_name,
@@ -94,7 +94,7 @@ router.get('/archived', authenticateToken, async (req, res) => {
         FROM recipe_ingredients ri
         LEFT JOIN items i ON ri.item_id = i.id
         LEFT JOIN units u ON i.unit_id = u.id
-        WHERE ri.recipe_id = ?
+        WHERE ri.recipe_id = $1
         ORDER BY i.item_name ASC
       `, [recipe.id]);
 
@@ -110,325 +110,325 @@ router.get('/archived', authenticateToken, async (req, res) => {
 
 // Create new recipe (manager only)
 router.post('/', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
     const { recipe_name, ingredients } = req.body;
 
     if (!recipe_name || !ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(400).json({ 
         error: 'Recipe name and at least one ingredient required' 
       });
     }
 
-    const [recipeResult] = await connection.query(`
-      INSERT INTO recipes (recipe_name) VALUES (?)
+    const { rows } = await client.query(`
+      INSERT INTO recipes (recipe_name) VALUES ($1) RETURNING id
     `, [recipe_name]);
 
-    const recipeId = recipeResult.insertId;
+    const recipeId = rows[0].id;
 
     for (const ingredient of ingredients) {
       if (!ingredient.item_id || !ingredient.quantity_required || ingredient.quantity_required <= 0) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
         return res.status(400).json({ 
           error: 'Each ingredient must have a valid item_id and positive quantity' 
         });
       }
 
       // Check if item is not deleted
-      const [itemCheck] = await connection.query(`
-        SELECT id FROM items WHERE id = ? AND is_deleted = 0
+      const { rows: itemCheck } = await client.query(`
+        SELECT id FROM items WHERE id = $1 AND is_deleted = false
       `, [ingredient.item_id]);
 
       if (itemCheck.length === 0) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
         return res.status(400).json({ 
           error: `Item with ID ${ingredient.item_id} not found or is archived` 
         });
       }
 
-      await connection.query(`
+      await client.query(`
         INSERT INTO recipe_ingredients (recipe_id, item_id, quantity_required)
-        VALUES (?, ?, ?)
+        VALUES ($1, $2, $3)
       `, [recipeId, ingredient.item_id, ingredient.quantity_required]);
     }
 
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (recipe_id, transaction_type, user_id, notes)
-      VALUES (?, 'added', ?, ?)
-    `, [recipeId, req.user.id, `Recipe "${recipe_name}" created with ${ingredients.length} ingredient(s)`]);
+      VALUES ($1, $2, $3, $4)
+    `, [recipeId, 'added', req.user.id, `Recipe "${recipe_name}" created with ${ingredients.length} ingredient(s)`]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.status(201).json({
       message: 'Recipe created successfully',
       id: recipeId
     });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error creating recipe:', error);
     
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') { // PostgreSQL unique violation
       res.status(400).json({ error: 'Recipe with this name already exists' });
     } else {
       res.status(500).json({ error: 'Server error creating recipe' });
     }
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Update recipe (manager only)
 router.put('/:id', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
     const { recipe_name, ingredients } = req.body;
 
     if (!recipe_name || !ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(400).json({ 
         error: 'Recipe name and at least one ingredient required' 
       });
     }
 
-    const [result] = await connection.query(`
-      UPDATE recipes SET recipe_name = ? WHERE id = ? AND is_deleted = 0
+    const { rowCount } = await client.query(`
+      UPDATE recipes SET recipe_name = $1 WHERE id = $2 AND is_deleted = false
     `, [recipe_name, req.params.id]);
 
-    if (result.affectedRows === 0) {
-      await connection.rollback();
+    if (rowCount === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Recipe not found' });
     }
 
-    await connection.query(`
-      DELETE FROM recipe_ingredients WHERE recipe_id = ?
+    await client.query(`
+      DELETE FROM recipe_ingredients WHERE recipe_id = $1
     `, [req.params.id]);
 
     for (const ingredient of ingredients) {
       if (!ingredient.item_id || !ingredient.quantity_required || ingredient.quantity_required <= 0) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
         return res.status(400).json({ 
           error: 'Each ingredient must have a valid item_id and positive quantity' 
         });
       }
 
-      const [itemCheck] = await connection.query(`
-        SELECT id FROM items WHERE id = ? AND is_deleted = 0
+      const { rows: itemCheck } = await client.query(`
+        SELECT id FROM items WHERE id = $1 AND is_deleted = false
       `, [ingredient.item_id]);
 
       if (itemCheck.length === 0) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
         return res.status(400).json({ 
           error: `Item with ID ${ingredient.item_id} not found or is archived` 
         });
       }
 
-      await connection.query(`
+      await client.query(`
         INSERT INTO recipe_ingredients (recipe_id, item_id, quantity_required)
-        VALUES (?, ?, ?)
+        VALUES ($1, $2, $3)
       `, [req.params.id, ingredient.item_id, ingredient.quantity_required]);
     }
 
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (recipe_id, transaction_type, user_id, notes)
-      VALUES (?, 'update', ?, ?)
-    `, [req.params.id, req.user.id, `Recipe "${recipe_name}" updated`]);
+      VALUES ($1, $2, $3, $4)
+    `, [req.params.id, 'update', req.user.id, `Recipe "${recipe_name}" updated`]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Recipe updated successfully' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error updating recipe:', error);
     
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') { // PostgreSQL unique violation
       res.status(400).json({ error: 'Recipe with this name already exists' });
     } else {
       res.status(500).json({ error: 'Server error updating recipe' });
     }
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Soft delete recipe (manager only) - Archive
 router.delete('/:id', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
-    const [recipes] = await connection.query(`
-      SELECT recipe_name FROM recipes WHERE id = ? AND is_deleted = 0
+    const { rows: recipes } = await client.query(`
+      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = false
     `, [req.params.id]);
 
     if (recipes.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Recipe not found' });
     }
 
     const recipeName = recipes[0].recipe_name;
 
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (recipe_id, transaction_type, user_id, notes)
-      VALUES (?, 'delete', ?, ?)
-    `, [req.params.id, req.user.id, `Recipe "${recipeName}" archived`]);
+      VALUES ($1, $2, $3, $4)
+    `, [req.params.id, 'delete', req.user.id, `Recipe "${recipeName}" archived`]);
 
-    await connection.query(`
+    await client.query(`
       UPDATE recipes 
-      SET is_deleted = 1, deleted_at = NOW() 
-      WHERE id = ?
+      SET is_deleted = true, deleted_at = NOW() 
+      WHERE id = $1
     `, [req.params.id]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Recipe archived successfully' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error archiving recipe:', error);
     res.status(500).json({ error: 'Server error archiving recipe' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Restore archived recipe (manager only)
 router.post('/:id/restore', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
-    const [recipes] = await connection.query(`
-      SELECT recipe_name FROM recipes WHERE id = ? AND is_deleted = 1
+    const { rows: recipes } = await client.query(`
+      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = true
     `, [req.params.id]);
 
     if (recipes.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Archived recipe not found' });
     }
 
     const recipeName = recipes[0].recipe_name;
 
-    await connection.query(`
+    await client.query(`
       UPDATE recipes 
-      SET is_deleted = 0, deleted_at = NULL 
-      WHERE id = ?
+      SET is_deleted = false, deleted_at = NULL 
+      WHERE id = $1
     `, [req.params.id]);
 
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (recipe_id, transaction_type, user_id, notes)
-      VALUES (?, 'restock', ?, ?)
-    `, [req.params.id, req.user.id, `Recipe "${recipeName}" restored from archive`]);
+      VALUES ($1, $2, $3, $4)
+    `, [req.params.id, 'restock', req.user.id, `Recipe "${recipeName}" restored from archive`]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Recipe restored successfully' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error restoring recipe:', error);
     res.status(500).json({ error: 'Server error restoring recipe' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Permanently delete archived recipe (manager only)
 router.delete('/:id/permanent', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
-    const [recipes] = await connection.query(`
-      SELECT recipe_name FROM recipes WHERE id = ? AND is_deleted = 1
+    const { rows: recipes } = await client.query(`
+      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = true
     `, [req.params.id]);
 
     if (recipes.length === 0) {
-      await connection.rollback();
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Archived recipe not found' });
     }
 
     const recipeName = recipes[0].recipe_name;
 
-    await connection.query(`
+    await client.query(`
       INSERT INTO transactions (recipe_id, transaction_type, user_id, notes)
-      VALUES (?, 'delete', ?, ?)
-    `, [req.params.id, req.user.id, `Recipe "${recipeName}" permanently deleted from archive`]);
+      VALUES ($1, $2, $3, $4)
+    `, [req.params.id, 'delete', req.user.id, `Recipe "${recipeName}" permanently deleted from archive`]);
 
-    await connection.query(`DELETE FROM recipes WHERE id = ?`, [req.params.id]);
+    await client.query(`DELETE FROM recipes WHERE id = $1`, [req.params.id]);
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ message: 'Recipe permanently deleted' });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error permanently deleting recipe:', error);
     res.status(500).json({ error: 'Server error permanently deleting recipe' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
 // Auto-cleanup archived recipes older than 30 days (cron job endpoint)
 router.post('/cleanup-archived', authenticateToken, async (req, res) => {
-  const connection = await db.getConnection();
+  const client = await db.connect();
   
   try {
     if (req.user.role !== 'manager') {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    await connection.beginTransaction();
+    await client.query('BEGIN');
 
-    const [recipesToDelete] = await connection.query(`
+    const { rows: recipesToDelete } = await client.query(`
       SELECT id, recipe_name
       FROM recipes 
-      WHERE is_deleted = 1 
-      AND deleted_at <= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      WHERE is_deleted = true 
+      AND deleted_at <= NOW() - INTERVAL '30 days'
     `);
 
     for (const recipe of recipesToDelete) {
-      await connection.query(`
+      await client.query(`
         INSERT INTO transactions (recipe_id, transaction_type, user_id, notes)
-        VALUES (?, 'delete', ?, ?)
-      `, [recipe.id, req.user.id, `Recipe "${recipe.recipe_name}" auto-deleted after 30 days in archive`]);
+        VALUES ($1, $2, $3, $4)
+      `, [recipe.id, 'delete', req.user.id, `Recipe "${recipe.recipe_name}" auto-deleted after 30 days in archive`]);
 
-      await connection.query(`DELETE FROM recipes WHERE id = ?`, [recipe.id]);
+      await client.query(`DELETE FROM recipes WHERE id = $1`, [recipe.id]);
     }
 
-    await connection.commit();
+    await client.query('COMMIT');
     res.json({ 
       message: 'Cleanup completed',
       recipes_deleted: recipesToDelete.length
     });
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     console.error('Error cleaning up archived recipes:', error);
     res.status(500).json({ error: 'Server error cleaning up recipes' });
   } finally {
-    connection.release();
+    client.release();
   }
 });
 
