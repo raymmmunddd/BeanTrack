@@ -469,11 +469,11 @@ const fetchInventory = async () => {
     })
   }
 
-  const getAvailableItemsForRecipe = (currentIndex: number) => {
+const getAvailableItemsForRecipe = (currentIndex: number) => {
     if (!editingRecipe) return items
     const selectedIds = editingRecipe.ingredients
-      .map((ing, idx) => idx !== currentIndex ? ing.item_id : 0)
-      .filter(id => id > 0)
+      .map((ing, idx) => idx !== currentIndex ? ing.item_id : null)
+      .filter(id => id !== null && id > 0)
     return items.filter(item => !selectedIds.includes(item.id))
   }
 
@@ -965,11 +965,16 @@ const fetchInventory = async () => {
                     {editingRecipe.ingredients.map((ing, index) => (
                       <div key={index} className="ingredient-edit-row">
                         <select
-                          value={ing.item_id}
+                          value={ing.item_id || 0}
                           onChange={(e) => updateRecipeIngredient(index, 'item_id', e.target.value)}
                           className="ingredient-select"
                         >
-                          <option value="0">Select ingredient...</option>
+                          <option value={0}>Select ingredient...</option>
+                          {ing.item_id > 0 && !getAvailableItemsForRecipe(index).find(i => i.id === ing.item_id) && (
+                            <option key={ing.item_id} value={ing.item_id}>
+                              {ing.item_name} ({ing.unit})
+                            </option>
+                          )}
                           {getAvailableItemsForRecipe(index).map(item => (
                             <option key={item.id} value={item.id}>
                               {item.name} ({item.unit})
