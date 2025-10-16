@@ -1,4 +1,4 @@
-// routes/users.js - PostgreSQL Compatible with Fixed Auth
+// routes/users.js - PostgreSQL Compatible with INTEGER is_deleted
 
 const express = require('express');
 const db = require('../config/database');
@@ -30,7 +30,7 @@ const authenticateToken = (req, res, next) => {
 router.get('/baristas/count', authenticateToken, async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT COUNT(*) as total FROM users WHERE role = 'barista' AND (is_deleted = false OR is_deleted IS NULL)`
+      `SELECT COUNT(*) as total FROM users WHERE role = 'barista' AND (is_deleted = 0 OR is_deleted IS NULL)`
     );
 
     res.json({ total: parseInt(rows[0].total) });
@@ -55,7 +55,7 @@ router.get('/baristas', authenticateToken, async (req, res) => {
     const { rows } = await db.query(
       `SELECT id, username, role, created_at, last_login
        FROM users 
-       WHERE role = 'barista' AND (is_deleted = false OR is_deleted IS NULL)
+       WHERE role = 'barista' AND (is_deleted = 0 OR is_deleted IS NULL)
        ORDER BY created_at DESC`
     );
 
@@ -89,7 +89,7 @@ router.get('/baristas/archived', authenticateToken, async (req, res) => {
         deleted_at,
         EXTRACT(DAY FROM (deleted_at + INTERVAL '30 days' - NOW())) as days_until_deletion
        FROM users 
-       WHERE role = 'barista' AND is_deleted = true
+       WHERE role = 'barista' AND is_deleted = 1
        ORDER BY deleted_at DESC`
     );
 
@@ -120,7 +120,7 @@ router.post('/baristas', authenticateToken, async (req, res) => {
     );
 
     if (existing.length > 0) {
-      if (existing[0].is_deleted === true) {
+      if (existing[0].is_deleted === 1) {
         return res.status(409).json({ error: 'Username exists in archive. Please restore or use a different username' });
       }
       return res.status(409).json({ error: 'Username already exists' });
@@ -131,7 +131,7 @@ router.post('/baristas', authenticateToken, async (req, res) => {
 
     await db.query(
       `INSERT INTO users (username, password, role, created_at, is_deleted) 
-       VALUES ($1, $2, 'barista', NOW(), false)`,
+       VALUES ($1, $2, 'barista', NOW(), 0)`,
       [username, hashedPassword]
     );
 
@@ -158,7 +158,7 @@ router.put('/baristas/:id', authenticateToken, async (req, res) => {
 
     // Ensure the user exists and is a barista and not deleted
     const { rows } = await db.query(
-      `SELECT id, role FROM users WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)`, 
+      `SELECT id, role FROM users WHERE id = $1 AND (is_deleted = 0 OR is_deleted IS NULL)`, 
       [id]
     );
     
@@ -171,7 +171,7 @@ router.put('/baristas/:id', authenticateToken, async (req, res) => {
 
     // Check if username is already taken
     const { rows: existing } = await db.query(
-      `SELECT id FROM users WHERE username = $1 AND id != $2 AND (is_deleted = false OR is_deleted IS NULL)`,
+      `SELECT id FROM users WHERE username = $1 AND id != $2 AND (is_deleted = 0 OR is_deleted IS NULL)`,
       [username, id]
     );
     
@@ -209,7 +209,7 @@ router.put('/baristas/:id/password', authenticateToken, async (req, res) => {
 
     // Ensure the user exists and is a barista and not deleted
     const { rows } = await db.query(
-      `SELECT id, role FROM users WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)`, 
+      `SELECT id, role FROM users WHERE id = $1 AND (is_deleted = 0 OR is_deleted IS NULL)`, 
       [id]
     );
     
@@ -252,7 +252,7 @@ router.delete('/baristas/:id', authenticateToken, async (req, res) => {
 
     // Prevent deleting manager accounts and check if not already deleted
     const { rows } = await client.query(
-      `SELECT username, role FROM users WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)`, 
+      `SELECT username, role FROM users WHERE id = $1 AND (is_deleted = 0 OR is_deleted IS NULL)`, 
       [id]
     );
     
@@ -276,7 +276,7 @@ router.delete('/baristas/:id', authenticateToken, async (req, res) => {
     // Soft delete
     await client.query(`
       UPDATE users 
-      SET is_deleted = true, deleted_at = NOW() 
+      SET is_deleted = 1, deleted_at = NOW() 
       WHERE id = $1
     `, [id]);
 
@@ -305,7 +305,7 @@ router.post('/baristas/:id/restore', authenticateToken, async (req, res) => {
     const { id } = req.params;
 
     const { rows } = await client.query(
-      `SELECT username FROM users WHERE id = $1 AND is_deleted = true`, 
+      `SELECT username FROM users WHERE id = $1 AND is_deleted = 1`, 
       [id]
     );
     
@@ -319,7 +319,7 @@ router.post('/baristas/:id/restore', authenticateToken, async (req, res) => {
     // Restore user
     await client.query(`
       UPDATE users 
-      SET is_deleted = false, deleted_at = NULL 
+      SET is_deleted = 0, deleted_at = NULL 
       WHERE id = $1
     `, [id]);
 
@@ -354,7 +354,7 @@ router.delete('/baristas/:id/permanent', authenticateToken, async (req, res) => 
     const { id } = req.params;
 
     const { rows } = await client.query(
-      `SELECT username FROM users WHERE id = $1 AND is_deleted = true`, 
+      `SELECT username FROM users WHERE id = $1 AND is_deleted = 1`, 
       [id]
     );
     
@@ -399,7 +399,7 @@ router.post('/cleanup-archived', authenticateToken, async (req, res) => {
     const { rows: usersToDelete } = await client.query(`
       SELECT id, username
       FROM users 
-      WHERE is_deleted = true 
+      WHERE is_deleted = 1 
       AND deleted_at <= NOW() - INTERVAL '30 days'
     `);
 
@@ -447,7 +447,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const { rows } = await db.query(
       `SELECT id, username, role, created_at, updated_at 
        FROM users 
-       WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)`,
+       WHERE id = $1 AND (is_deleted = 0 OR is_deleted IS NULL)`,
       [userId]
     );
 
@@ -489,7 +489,7 @@ router.put('/:id/password', authenticateToken, async (req, res) => {
 
     // Get current user password
     const { rows } = await db.query(
-      `SELECT password FROM users WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)`,
+      `SELECT password FROM users WHERE id = $1 AND (is_deleted = 0 OR is_deleted IS NULL)`,
       [userId]
     );
 
@@ -538,7 +538,7 @@ router.put('/:id/username', authenticateToken, async (req, res) => {
 
     // Check if username is already taken (exclude soft-deleted and current user)
     const { rows: existing } = await db.query(
-      `SELECT id FROM users WHERE username = $1 AND id != $2 AND (is_deleted = false OR is_deleted IS NULL)`, 
+      `SELECT id FROM users WHERE username = $1 AND id != $2 AND (is_deleted = 0 OR is_deleted IS NULL)`, 
       [username, userId]
     );
     if (existing.length > 0) {
