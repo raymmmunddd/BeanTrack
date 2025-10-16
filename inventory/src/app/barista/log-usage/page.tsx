@@ -459,11 +459,15 @@ export default function LogUsage() {
                                 ))}
                               </select>
                             </td>
-                            <td>
-                              <div className="stock-value-container">
-                                <span className="stock-value">{formatNumber(item.available_stock)}</span>
-                              </div>
-                            </td>
+                              <td>
+                                <div className="stock-value-container">
+                                  <span className="stock-value">
+                                    {item.item_id > 0 
+                                      ? formatNumber(inventoryItems.find(i => i.id === item.item_id)?.current_quantity || 0)
+                                      : '-'}
+                                  </span>
+                                </div>
+                              </td>
                             <td>
                               <input
                                 type="number"
