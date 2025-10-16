@@ -1,4 +1,4 @@
-// auth.js - Fixed JWT token structure
+// auth.js - Fixed JWT token structure with INTEGER is_deleted
 
 const express = require('express');
 const bcrypt = require('bcrypt');
@@ -44,7 +44,7 @@ router.post('/signup', async (req, res) => {
 
     // Check if username already exists (exclude soft-deleted)
     const existingUsers = await db.query(
-      'SELECT id FROM users WHERE username = $1 AND COALESCE(is_deleted, 0) = 0',
+      'SELECT id FROM users WHERE username = $1 AND (is_deleted = 0 OR is_deleted IS NULL)',
       [username]
     );
 
@@ -58,31 +58,18 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user (role is automatically 'barista' by default)
-    let result;
-    try {
-      result = await db.query(
-        'INSERT INTO users (username, password, role, is_deleted) VALUES ($1, $2, $3, 0) RETURNING id',
-        [username, hashedPassword, 'barista']
-      );
-    } catch (insertError) {
-      // If is_deleted column doesn't exist, insert without it
-      if (insertError.code === '42703') {
-        result = await db.query(
-          'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id',
-          [username, hashedPassword, 'barista']
-        );
-      } else {
-        throw insertError;
-      }
-    }
+    const result = await db.query(
+      'INSERT INTO users (username, password, role, is_deleted) VALUES ($1, $2, $3, 0) RETURNING id',
+      [username, hashedPassword, 'barista']
+    );
 
     const userId = result.rows[0].id;
 
     // Create JWT token - USING CONSISTENT FIELD NAMES
     const token = jwt.sign(
       { 
-        userId: userId,      // ← Changed from 'id' to 'userId'
-        id: userId,          // ← Keep 'id' for backward compatibility
+        userId: userId,      // ← Primary field for consistency
+        id: userId,          // ← Backward compatibility
         username: username, 
         role: 'barista' 
       },
@@ -122,7 +109,7 @@ router.post('/signin', async (req, res) => {
 
     // Find user by username (exclude soft-deleted)
     const users = await db.query(
-      'SELECT id, username, password, role FROM users WHERE username = $1 AND COALESCE(is_deleted, 0) = 0',
+      'SELECT id, username, password, role FROM users WHERE username = $1 AND (is_deleted = 0 OR is_deleted IS NULL)',
       [username]
     );
 
@@ -160,8 +147,8 @@ router.post('/signin', async (req, res) => {
     // Create JWT token - USING CONSISTENT FIELD NAMES
     const token = jwt.sign(
       { 
-        userId: user.id,     // ← Changed from 'id' to 'userId'
-        id: user.id,         // ← Keep 'id' for backward compatibility
+        userId: user.id,     // ← Primary field for consistency
+        id: user.id,         // ← Backward compatibility
         username: user.username, 
         role: user.role 
       },
