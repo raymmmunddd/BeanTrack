@@ -89,13 +89,13 @@ export default function AddItemsRecipes() {
       const token = localStorage.getItem('cafestock_token')
       
       const [categoriesRes, unitsRes, itemsRes] = await Promise.all([
-        fetch('${API_BASE_URL}/api/categories', {
+        fetch(`${API_BASE_URL}/api/categories`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('${API_BASE_URL}/api/units', {
+        fetch(`${API_BASE_URL}/api/units`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('${API_BASE_URL}/api/inventory', {
+        fetch(`${API_BASE_URL}/api/inventory`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ])
@@ -163,7 +163,7 @@ export default function AddItemsRecipes() {
     
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/inventory', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -261,7 +261,7 @@ export default function AddItemsRecipes() {
 
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/recipes', {
+      const response = await fetch(`${API_BASE_URL}/api/recipes`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
