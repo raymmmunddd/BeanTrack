@@ -445,33 +445,40 @@ const fetchInventory = async () => {
   }
 
 const updateRecipeIngredient = (index: number, field: string, value: any) => {
-    if (!editingRecipe) return
-    const newIngredients = [...editingRecipe.ingredients]
-    if (field === 'item_id') {
-      const itemId = parseInt(value)
-      const item = items.find(i => i.id === itemId)
-      if (item) {
-        newIngredients[index] = {
-          ...newIngredients[index],
-          item_id: itemId,
-          item_name: item.name,
-          unit: item.unit,
-          current_stock: item.current_quantity,
-          minimum_stock: item.min_threshold,
-          maximum_stock: item.max_threshold
-        }
-      }
-    } else if (field === 'quantity') {
+  console.log('updateRecipeIngredient called:', { index, field, value, editingRecipe });
+  
+  if (!editingRecipe) return
+  const newIngredients = [...editingRecipe.ingredients]
+  if (field === 'item_id') {
+    const itemId = parseInt(value)
+    console.log('Looking for item with ID:', itemId);
+    const item = items.find(i => i.id === itemId)
+    console.log('Found item:', item);
+    
+    if (item) {
       newIngredients[index] = {
         ...newIngredients[index],
-        quantity: parseFloat(value) || 0
+        item_id: itemId,
+        item_name: item.name,
+        unit: item.unit,
+        current_stock: item.current_quantity,
+        minimum_stock: item.min_threshold,
+        maximum_stock: item.max_threshold
       }
+      console.log('Updated ingredient:', newIngredients[index]);
     }
-    setEditingRecipe({
-      ...editingRecipe,
-      ingredients: newIngredients
-    })
+  } else if (field === 'quantity') {
+    newIngredients[index] = {
+      ...newIngredients[index],
+      quantity: parseFloat(value) || 0
+    }
   }
+  setEditingRecipe({
+    ...editingRecipe,
+    ingredients: newIngredients
+  })
+  console.log('New editingRecipe state:', { ...editingRecipe, ingredients: newIngredients });
+}
 
 const getAvailableItemsForRecipe = (currentIndex: number) => {
     if (!editingRecipe) return items
