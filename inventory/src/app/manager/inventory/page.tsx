@@ -96,28 +96,45 @@ const normalizeRecipe = (recipe: any): Recipe => {
     }))
   }
 }
+
+const normalizeInventoryItem = (item: any): InventoryItem => {
+  return {
+    id: Number(item.id),
+    name: item.name,
+    category: item.category,
+    current_quantity: Number(item.current_quantity),
+    unit: item.unit,
+    min_threshold: Number(item.min_threshold),
+    max_threshold: Number(item.max_threshold),
+    status: item.status,
+    category_id: item.category_id ? Number(item.category_id) : undefined,
+    unit_id: item.unit_id ? Number(item.unit_id) : undefined,
+    description: item.description
+  }
+}
   
 const fetchInventory = async () => {
-    try {
-      const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setItems(data)
-      } else {
-        setError('Failed to load inventory')
+  try {
+    const token = localStorage.getItem('cafestock_token')
+    const response = await fetch(`${API_BASE_URL}/api/inventory`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (err) {
-      setError('Unable to connect to server')
-    } finally {
-      setLoading(false)
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      const normalizedItems = data.map((item: any) => normalizeInventoryItem(item))
+      setItems(normalizedItems)
+    } else {
+      setError('Failed to load inventory')
     }
+  } catch (err) {
+    setError('Unable to connect to server')
+  } finally {
+    setLoading(false)
   }
+}
 
   const fetchCategories = async () => {
     try {
@@ -463,32 +480,13 @@ const fetchRecipes = async () => {
   }
 
 const updateRecipeIngredient = (index: number, field: string, value: any) => {
-  console.log('=== updateRecipeIngredient START ===');
-  console.log('index:', index);
-  console.log('field:', field);
-  console.log('value:', value, 'type:', typeof value);
-  console.log('editingRecipe:', editingRecipe);
-  console.log('items array length:', items.length);
-  console.log('First 3 items:', items.slice(0, 3).map(i => ({ id: i.id, name: i.name })));
-  
-  if (!editingRecipe) {
-    console.log('No editingRecipe, returning');
-    return;
-  }
+  if (!editingRecipe) return
   
   const newIngredients = [...editingRecipe.ingredients]
-  console.log('newIngredients before update:', newIngredients[index]);
   
   if (field === 'item_id') {
     const itemId = parseInt(value)
-    console.log('Parsed itemId:', itemId, 'type:', typeof itemId);
-    
-    const item = items.find(i => {
-      console.log('Comparing:', i.id, 'type:', typeof i.id, 'with', itemId);
-      return i.id === itemId;
-    })
-    
-    console.log('Found item:', item);
+    const item = items.find(i => i.id === itemId)
     
     if (item) {
       newIngredients[index] = {
@@ -500,9 +498,6 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
         minimum_stock: item.min_threshold,
         maximum_stock: item.max_threshold
       }
-      console.log('Updated ingredient:', newIngredients[index]);
-    } else {
-      console.log('ITEM NOT FOUND!');
     }
   } else if (field === 'quantity') {
     newIngredients[index] = {
@@ -511,14 +506,10 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
     }
   }
   
-  const newRecipeState = {
+  setEditingRecipe({
     ...editingRecipe,
     ingredients: newIngredients
-  }
-  
-  console.log('About to call setEditingRecipe with:', newRecipeState);
-  setEditingRecipe(newRecipeState)
-  console.log('=== updateRecipeIngredient END ===');
+  })
 }
   
 const getAvailableItemsForRecipe = (currentIndex: number) => {
