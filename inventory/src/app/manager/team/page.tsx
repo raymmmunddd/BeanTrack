@@ -69,7 +69,7 @@ const TeamManagement = () => {
 
   const fetchBaristas = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/users/baristas', {
+      const response = await fetch(`${API_BASE_URL}/api/users/baristas`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -144,7 +144,7 @@ const TeamManagement = () => {
     const token = localStorage.getItem('cafestock_token');
     
     try {
-      const response = await fetch('${API_BASE_URL}/api/users/baristas', {
+      const response = await fetch(`${API_BASE_URL}/api/users/baristas`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
