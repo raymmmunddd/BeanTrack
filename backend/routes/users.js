@@ -352,10 +352,23 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const userId = req.params.id;
     const tokenUserId = req.user.userId || req.user.id;
 
+    // Debug logging
+    console.log('=== User Profile Access Debug ===');
+    console.log('req.user:', JSON.stringify(req.user));
+    console.log('tokenUserId:', tokenUserId);
+    console.log('userId from params:', userId);
+    console.log('req.user.role:', req.user.role);
+    console.log('================================');
+
     // Verify user is accessing their own profile or is a manager
     if (tokenUserId !== parseInt(userId) && req.user.role !== 'manager') {
       return res.status(403).json({ 
-        error: 'Access denied'
+        error: 'Access denied',
+        debug: {
+          tokenUserId,
+          requestedUserId: parseInt(userId),
+          role: req.user.role
+        }
       });
     }
 
