@@ -1,4 +1,4 @@
-// routes/ordering.js
+// routes/ordering.js - PostgreSQL Compatible - FIXED BOOLEAN COMPARISONS
 
 const express = require('express');
 const db = require('../config/database');
@@ -40,7 +40,7 @@ router.patch('/:id/order', authenticateToken, async (req, res) => {
 
     // Check if item exists and is not deleted
     const items = await client.query(
-      `SELECT id, item_name, ordered FROM items WHERE id = $1 AND is_deleted = false`,
+      `SELECT id, item_name, ordered FROM items WHERE id = $1 AND is_deleted = 0`,
       [id]
     );
 
@@ -52,7 +52,7 @@ router.patch('/:id/order', authenticateToken, async (req, res) => {
 
     const item = items.rows[0];
 
-    if (item.ordered === true) {
+    if (item.ordered === 1 || item.ordered === true) {
       await client.query('ROLLBACK');
       client.release();
       return res.status(400).json({ error: 'Item is already marked as ordered' });
@@ -60,7 +60,7 @@ router.patch('/:id/order', authenticateToken, async (req, res) => {
 
     // Update ordered status
     await client.query(
-      `UPDATE items SET ordered = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      `UPDATE items SET ordered = 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
       [id]
     );
 
@@ -120,7 +120,7 @@ router.put('/:id/restock', authenticateToken, async (req, res) => {
 
     // Get existing item
     const items = await client.query(
-      `SELECT id, item_name, current_stock FROM items WHERE id = $1 AND is_deleted = false`,
+      `SELECT id, item_name, current_stock FROM items WHERE id = $1 AND is_deleted = 0`,
       [id]
     );
 
@@ -139,8 +139,8 @@ router.put('/:id/restock', authenticateToken, async (req, res) => {
     // ✅ Update stock and mark as not ordered
     await client.query(
       `UPDATE items 
-       SET current_stock = $1, ordered = false, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $2 AND is_deleted = false`,
+       SET current_stock = $1, ordered = 0, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 AND is_deleted = 0`,
       [newStock, id]
     );
 
