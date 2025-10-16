@@ -95,28 +95,29 @@ export default function LogUsage() {
     }
   }
 
-  const fetchInventoryItems = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+const fetchInventoryItems = async () => {
+  try {
+    setLoading(true)
+    const token = localStorage.getItem('cafestock_token')
+    const response = await fetch(`${API_BASE_URL}/api/inventory`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
 
-      if (response.ok) {
-        const data = await response.json()
-        // Filter out Equipment category
-        const filtered = data.filter((item: InventoryItem) => item.category !== 'Equipment')
-        setInventoryItems(filtered)
-      } else {
-        setError('Failed to load inventory')
-      }
-    } catch {
-      setError('Unable to connect to server')
-    } finally {
-      setLoading(false)
+    if (response.ok) {
+      const data = await response.json()
+      console.log('Fetched inventory items:', data)
+      // Filter out Equipment category
+      const filtered = data.filter((item: InventoryItem) => item.category !== 'Equipment')
+      setInventoryItems(filtered)
+    } else {
+      setError('Failed to load inventory')
     }
+  } catch {
+    setError('Unable to connect to server')
+  } finally {
+    setLoading(false)
   }
+}
 
   const getItemStatus = (
     current: number,
