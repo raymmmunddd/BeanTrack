@@ -18,6 +18,8 @@ interface InventoryItem {
   status: 'healthy' | 'medium' | 'low' | 'out'
 }
 
+const API_BASE_URL = 'https://beantrack-esht.onrender.com';
+
 export default function CafeInventory() {
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,12 +33,16 @@ export default function CafeInventory() {
     fetchInventory()
   }, [])
 
-  const API_BASE_URL = 'https://beantrack-esht.onrender.com';
-
   const fetchInventory = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/inventory', {
+      
+      if (!token) {
+        window.location.href = '/'
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -45,6 +51,10 @@ export default function CafeInventory() {
       if (response.ok) {
         const data = await response.json()
         setItems(data)
+      } else if (response.status === 401) {
+        localStorage.removeItem('cafestock_token')
+        localStorage.removeItem('cafestock_user')
+        window.location.href = '/'
       } else {
         setError('Failed to load inventory')
       }
