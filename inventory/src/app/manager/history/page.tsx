@@ -78,7 +78,7 @@ const ActivityHistory = () => {
 
   const fetchActivities = async (token: string) => {
     try {
-      const response = await fetch('${API_BASE_URL}/api/inventory/transactions/all', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory/transactions/all`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
