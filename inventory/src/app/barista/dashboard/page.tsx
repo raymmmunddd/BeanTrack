@@ -347,7 +347,7 @@ const Dashboard = () => {
 
             <div className="modal-body">
               <p className="logout-warning">Are you sure you want to sign out?</p>
-              <p className="logout-subtext">You'll need to log in again to access your account.</p>
+              <p className="logout-subtext">You&apos;ll need to log in again to access your account.</p>
             </div>
 
             <div className="modal-footer">
