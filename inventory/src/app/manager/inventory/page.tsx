@@ -444,17 +444,21 @@ const fetchInventory = async () => {
     })
   }
 
-  const updateRecipeIngredient = (index: number, field: string, value: any) => {
+const updateRecipeIngredient = (index: number, field: string, value: any) => {
     if (!editingRecipe) return
     const newIngredients = [...editingRecipe.ingredients]
     if (field === 'item_id') {
-      const item = items.find(i => i.id === parseInt(value))
+      const itemId = parseInt(value)
+      const item = items.find(i => i.id === itemId)
       if (item) {
         newIngredients[index] = {
           ...newIngredients[index],
-          item_id: parseInt(value),
+          item_id: itemId,
           item_name: item.name,
-          unit: item.unit
+          unit: item.unit,
+          current_stock: item.current_quantity,
+          minimum_stock: item.min_threshold,
+          maximum_stock: item.max_threshold
         }
       }
     } else if (field === 'quantity') {
