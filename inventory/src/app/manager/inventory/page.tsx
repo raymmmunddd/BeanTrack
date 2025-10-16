@@ -80,10 +80,10 @@ export default function CafeInventory() {
     fetchRecipes()
   }, [])
 
-  const fetchInventory = async () => {
+const fetchInventory = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/inventory', {
+      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -105,7 +105,7 @@ export default function CafeInventory() {
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/categories', {
+      const response = await fetch(`${API_BASE_URL}/api/categories`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -123,7 +123,7 @@ export default function CafeInventory() {
   const fetchUnits = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/units', {
+      const response = await fetch(`${API_BASE_URL}/api/units`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -141,7 +141,7 @@ export default function CafeInventory() {
   const fetchRecipes = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
-      const response = await fetch('${API_BASE_URL}/api/recipes', {
+      const response = await fetch(`${API_BASE_URL}/api/recipes`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
