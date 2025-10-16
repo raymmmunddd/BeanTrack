@@ -94,7 +94,7 @@ const ExportData = () => {
     }
   }, [selectedExport, dateRange]);
 
-  const fetchPreviewData = async () => {
+const fetchPreviewData = async () => {
     const token = localStorage.getItem('cafestock_token');
     if (!token) return;
 
@@ -102,31 +102,31 @@ const ExportData = () => {
       let endpoint = '';
       let headers: string[] = [];
       
-  switch (selectedExport) {
-    case 'inventory':
-      endpoint = '${API_BASE_URL}/api/export?type=inventory';
-      headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Min Stock', 'Max Stock', 'Status'];
-      break;
+      switch (selectedExport) {
+        case 'inventory':
+          endpoint = `${API_BASE_URL}/api/export?type=inventory`;
+          headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Min Stock', 'Max Stock', 'Status'];
+          break;
 
-    case 'lowstock':
-      endpoint = '${API_BASE_URL}/api/export?type=lowstock';
-      headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Min Stock', 'Stock Level'];
-      break;
+        case 'lowstock':
+          endpoint = `${API_BASE_URL}/api/export?type=lowstock`;
+          headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Min Stock', 'Stock Level'];
+          break;
 
-    case 'history':
-      endpoint = '${API_BASE_URL}/api/export?type=history';
-      headers = ['Date', 'Time', 'User', 'Action', 'Item', 'Quantity', 'Unit', 'Notes'];
-      break;
+        case 'history':
+          endpoint = `${API_BASE_URL}/api/export?type=history`;
+          headers = ['Date', 'Time', 'User', 'Action', 'Item', 'Quantity', 'Unit', 'Notes'];
+          break;
 
-    case 'team':
-      endpoint = '${API_BASE_URL}/api/export?type=team';
-      headers = ['Username', 'Role', 'Created At', 'Last Login'];
-      break;
+        case 'team':
+          endpoint = `${API_BASE_URL}/api/export?type=team`;
+          headers = ['Username', 'Role', 'Created At', 'Last Login'];
+          break;
 
-    default:
-      console.error('Invalid export type selected');
-      return;
-  }
+        default:
+          console.error('Invalid export type selected');
+          return;
+      }
 
       const response = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -152,7 +152,7 @@ const ExportData = () => {
       console.error('Error fetching preview data:', error);
     }
   };
-
+  
   const filterByDateRange = (data: any[]) => {
     if (dateRange === 'all') return data;
     
