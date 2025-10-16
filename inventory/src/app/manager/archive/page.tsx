@@ -194,13 +194,13 @@ const ArchiveManager = () => {
     setIsLoading(true);
     try {
       const [itemsRes, recipesRes, usersRes] = await Promise.all([
-        fetch('${API_BASE_URL}/api/inventory/archived', {
+        fetch(`${API_BASE_URL}/api/inventory/archived`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('${API_BASE_URL}/api/recipes/archived', {
+        fetch(`${API_BASE_URL}/api/recipes/archived`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('${API_BASE_URL}/api/users/baristas/archived', {
+        fetch(`${API_BASE_URL}/api/users/baristas/archived`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -316,15 +316,15 @@ const ArchiveManager = () => {
 
         try {
           const [itemsRes, recipesRes, usersRes] = await Promise.all([
-            fetch('${API_BASE_URL}/api/inventory/cleanup-archived', {
+            fetch(`${API_BASE_URL}/api/inventory/cleanup-archived`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('${API_BASE_URL}/api/recipes/cleanup-archived', {
+            fetch(`${API_BASE_URL}/api/recipes/cleanup-archived`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
             }),
-            fetch('${API_BASE_URL}/api/users/cleanup-archived', {
+            fetch(`${API_BASE_URL}/api/users/cleanup-archived`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
             })
