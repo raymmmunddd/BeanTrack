@@ -12,32 +12,32 @@ router.get('/', async (req, res) => {
 
   try {
     let query = '';
-    let [rows] = [[]];
+    let result;
 
     switch (type) {
       // === INVENTORY EXPORT ===
-    case 'inventory':
-    query = `
-        SELECT 
-        i.id,
-        i.item_name,
-        c.name AS category_name,
-        u.name AS unit_name,
-        i.current_stock,
-        i.minimum_stock,
-        i.maximum_stock,
-        CASE 
-            WHEN i.current_stock = 0 THEN 'Out of Stock' 
-            WHEN i.current_stock <= i.minimum_stock THEN 'Low Stock' 
-            WHEN i.current_stock <= (i.minimum_stock + (i.maximum_stock - i.minimum_stock) * 0.5) THEN 'Medium' 
-            ELSE 'Healthy'
-        END AS stock_status
-        FROM items i
-        JOIN categories c ON i.category_id = c.id
-        JOIN units u ON i.unit_id = u.id
-    `;
-    [rows] = await db.query(query);
-    break;
+      case 'inventory':
+        query = `
+          SELECT 
+            i.id,
+            i.item_name,
+            c.name AS category_name,
+            u.name AS unit_name,
+            i.current_stock,
+            i.minimum_stock,
+            i.maximum_stock,
+            CASE 
+              WHEN i.current_stock = 0 THEN 'Out of Stock' 
+              WHEN i.current_stock <= i.minimum_stock THEN 'Low Stock' 
+              WHEN i.current_stock <= (i.minimum_stock + (i.maximum_stock - i.minimum_stock) * 0.5) THEN 'Medium' 
+              ELSE 'Healthy'
+            END AS stock_status
+          FROM items i
+          JOIN categories c ON i.category_id = c.id
+          JOIN units u ON i.unit_id = u.id
+        `;
+        result = await db.query(query);
+        break;
 
       // === LOW STOCK EXPORT ===
       case 'lowstock':
@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
           JOIN units u ON i.unit_id = u.id
           WHERE i.current_stock <= i.minimum_stock
         `;
-        [rows] = await db.query(query);
+        result = await db.query(query);
         break;
 
       // === TRANSACTION HISTORY EXPORT ===
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
           JOIN users usr ON t.user_id = usr.id
           ORDER BY t.created_at DESC
         `;
-        [rows] = await db.query(query);
+        result = await db.query(query);
         break;
 
       // === TEAM MEMBERS EXPORT ===
@@ -90,14 +90,14 @@ router.get('/', async (req, res) => {
           FROM users
           ORDER BY created_at DESC
         `;
-        [rows] = await db.query(query);
+        result = await db.query(query);
         break;
 
       default:
         return res.status(400).json({ message: 'Invalid export type' });
     }
 
-    res.json(rows);
+    res.json(result.rows);
   } catch (error) {
     console.error('Error exporting data:', error);
     res.status(500).json({ message: 'Server error while exporting data' });
