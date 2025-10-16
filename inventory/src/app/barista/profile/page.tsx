@@ -65,9 +65,15 @@ const Profile = () => {
 
   const fetchUserProfile = async (token: string, userId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      console.log('=== Frontend Debug ===');
+      console.log('Token:', token);
+      console.log('Requesting user ID:', userId);
+      console.log('LocalStorage user:', localStorage.getItem('cafestock_user'));
+      console.log('====================');
+      
+      const response = await fetch(API_BASE_URL + '/api/users/' + userId, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': 'Bearer ' + token
         }
       });
 
@@ -144,10 +150,10 @@ const Profile = () => {
     try {
       // 1️⃣ Update username if changed
       if (newUsername !== user.username) {
-        const usernameRes = await fetch(`${API_BASE_URL}/api/users/${user.id}/username`, {
+        const usernameRes = await fetch(API_BASE_URL + '/api/users/' + user.id + '/username', {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': 'Bearer ' + token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ username: newUsername })
@@ -171,10 +177,10 @@ const Profile = () => {
 
       // 2️⃣ Update password if provided
       if (currentPassword && newPassword) {
-        const passwordRes = await fetch(`${API_BASE_URL}/api/users/${user.id}/password`, {
+        const passwordRes = await fetch(API_BASE_URL + '/api/users/' + user.id + '/password', {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': 'Bearer ' + token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ currentPassword, newPassword })
