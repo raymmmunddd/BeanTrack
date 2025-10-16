@@ -1,4 +1,4 @@
-// auth.js
+// auth.js - Fixed JWT token structure
 
 const express = require('express');
 const bcrypt = require('bcrypt');
@@ -42,9 +42,9 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // Check if username already exists
+    // Check if username already exists (exclude soft-deleted)
     const existingUsers = await db.query(
-      'SELECT id FROM users WHERE username = $1',
+      'SELECT id FROM users WHERE username = $1 AND COALESCE(is_deleted, 0) = 0',
       [username]
     );
 
@@ -58,17 +58,31 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user (role is automatically 'barista' by default)
-    const result = await db.query(
-      'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id',
-      [username, hashedPassword, 'barista']
-    );
+    let result;
+    try {
+      result = await db.query(
+        'INSERT INTO users (username, password, role, is_deleted) VALUES ($1, $2, $3, 0) RETURNING id',
+        [username, hashedPassword, 'barista']
+      );
+    } catch (insertError) {
+      // If is_deleted column doesn't exist, insert without it
+      if (insertError.code === '42703') {
+        result = await db.query(
+          'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id',
+          [username, hashedPassword, 'barista']
+        );
+      } else {
+        throw insertError;
+      }
+    }
 
     const userId = result.rows[0].id;
 
-    // Create JWT token
+    // Create JWT token - USING CONSISTENT FIELD NAMES
     const token = jwt.sign(
       { 
-        id: userId, 
+        userId: userId,      // ← Changed from 'id' to 'userId'
+        id: userId,          // ← Keep 'id' for backward compatibility
         username: username, 
         role: 'barista' 
       },
@@ -106,9 +120,9 @@ router.post('/signin', async (req, res) => {
       });
     }
 
-    // Find user by username
+    // Find user by username (exclude soft-deleted)
     const users = await db.query(
-      'SELECT id, username, password, role FROM users WHERE username = $1',
+      'SELECT id, username, password, role FROM users WHERE username = $1 AND COALESCE(is_deleted, 0) = 0',
       [username]
     );
 
@@ -130,12 +144,6 @@ router.post('/signin', async (req, res) => {
       });
     }
 
-    // Update last login time
-    await db.query(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
-      [user.id]
-    );
-
     // Check if the role matches
     if (user.role !== role) {
       return res.status(403).json({ 
@@ -143,10 +151,17 @@ router.post('/signin', async (req, res) => {
       });
     }
 
-    // Create JWT token
+    // Update last login time
+    await db.query(
+      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+      [user.id]
+    );
+
+    // Create JWT token - USING CONSISTENT FIELD NAMES
     const token = jwt.sign(
       { 
-        id: user.id, 
+        userId: user.id,     // ← Changed from 'id' to 'userId'
+        id: user.id,         // ← Keep 'id' for backward compatibility
         username: user.username, 
         role: user.role 
       },
