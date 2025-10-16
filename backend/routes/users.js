@@ -439,7 +439,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     console.log('User role:', req.user.role);
 
     // Verify user is accessing their own profile or is a manager
-    if (tokenUserId !== parseInt(userId) && req.user.role !== 'manager') {
+    if (parseInt(tokenUserId) !== parseInt(userId) && req.user.role !== 'manager') {
       console.log('Access denied - user mismatch');
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -474,7 +474,7 @@ router.put('/:id/password', authenticateToken, async (req, res) => {
     const tokenUserId = req.user.userId || req.user.id;
 
     // Verify user is updating their own password
-    if (tokenUserId !== parseInt(userId)) {
+    if (parseInt(tokenUserId) !== parseInt(userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -528,7 +528,7 @@ router.put('/:id/username', authenticateToken, async (req, res) => {
     const { username } = req.body;
     const tokenUserId = req.user.userId || req.user.id;
 
-    if (tokenUserId !== parseInt(userId)) {
+    if (parseInt(tokenUserId) !== parseInt(userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
