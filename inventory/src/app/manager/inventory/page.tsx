@@ -30,13 +30,13 @@ interface Unit {
 }
 
 interface Ingredient {
-  item_id: number | string 
+  item_id: number
   item_name: string
-  quantity: number | string 
+  quantity: number
   unit: string
-  current_stock: number | string 
-  minimum_stock: number | string 
-  maximum_stock: number | string 
+  current_stock: number
+  minimum_stock: number
+  maximum_stock: number
   status?: 'healthy' | 'medium' | 'low' | 'out'
 }
 
@@ -80,6 +80,23 @@ export default function CafeInventory() {
     fetchRecipes()
   }, [])
 
+const normalizeRecipe = (recipe: any): Recipe => {
+  return {
+    id: Number(recipe.id),
+    name: recipe.name,
+    ingredients: recipe.ingredients.map((ing: any) => ({
+      item_id: Number(ing.item_id),
+      item_name: ing.item_name,
+      quantity: Number(ing.quantity),
+      unit: ing.unit,
+      current_stock: Number(ing.current_stock),
+      minimum_stock: Number(ing.minimum_stock),
+      maximum_stock: Number(ing.maximum_stock),
+      status: ing.status
+    }))
+  }
+}
+  
 const fetchInventory = async () => {
     try {
       const token = localStorage.getItem('cafestock_token')
@@ -138,24 +155,25 @@ const fetchInventory = async () => {
     }
   }
 
-  const fetchRecipes = async () => {
-    try {
-      const token = localStorage.getItem('cafestock_token')
-      const response = await fetch(`${API_BASE_URL}/api/recipes`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setRecipes(data)
+const fetchRecipes = async () => {
+  try {
+    const token = localStorage.getItem('cafestock_token')
+    const response = await fetch(`${API_BASE_URL}/api/recipes`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (err) {
-      console.error('Error fetching recipes:', err)
-    }
-  }
+    })
 
+    if (response.ok) {
+      const data = await response.json()
+      const normalizedRecipes = data.map((recipe: any) => normalizeRecipe(recipe))
+      setRecipes(normalizedRecipes)
+    }
+  } catch (err) {
+    console.error('Error fetching recipes:', err)
+  }
+}
+  
   const formatNumber = (value: number) => {
     return value % 1 === 0 ? Math.floor(value) : value
   }
@@ -449,8 +467,7 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
   const newIngredients = [...editingRecipe.ingredients]
   if (field === 'item_id') {
     const itemId = parseInt(value)
-    // Fix: Compare with both number and string versions
-    const item = items.find(i => i.id === itemId || i.id === String(itemId))
+    const item = items.find(i => i.id === itemId)
     if (item) {
       newIngredients[index] = {
         ...newIngredients[index],
