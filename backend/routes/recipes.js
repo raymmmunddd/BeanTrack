@@ -1,4 +1,4 @@
-// routes/recipes.js
+// routes/recipes.js - PostgreSQL Compatible - FIXED BOOLEAN COMPARISONS
 const express = require('express');
 const db = require('../config/database');
 const jwt = require('jsonwebtoken');
@@ -29,7 +29,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const { rows: recipes } = await db.query(`
       SELECT id, recipe_name AS name
       FROM recipes
-      WHERE is_deleted = false
+      WHERE is_deleted = 0
       ORDER BY recipe_name ASC
     `);
 
@@ -52,7 +52,7 @@ router.get('/', authenticateToken, async (req, res) => {
         FROM recipe_ingredients ri
         JOIN items i ON ri.item_id = i.id
         JOIN units u ON i.unit_id = u.id
-        WHERE ri.recipe_id = $1 AND i.is_deleted = false
+        WHERE ri.recipe_id = $1 AND i.is_deleted = 0
         ORDER BY i.item_name ASC
       `, [recipe.id]);
 
@@ -80,7 +80,7 @@ router.get('/archived', authenticateToken, async (req, res) => {
         deleted_at,
         EXTRACT(DAY FROM (deleted_at + INTERVAL '30 days' - NOW())) as days_until_deletion
       FROM recipes
-      WHERE is_deleted = true
+      WHERE is_deleted = 1
       ORDER BY deleted_at DESC
     `);
 
@@ -144,7 +144,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
       // Check if item is not deleted
       const { rows: itemCheck } = await client.query(`
-        SELECT id FROM items WHERE id = $1 AND is_deleted = false
+        SELECT id FROM items WHERE id = $1 AND is_deleted = 0
       `, [ingredient.item_id]);
 
       if (itemCheck.length === 0) {
@@ -205,7 +205,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     const { rowCount } = await client.query(`
-      UPDATE recipes SET recipe_name = $1 WHERE id = $2 AND is_deleted = false
+      UPDATE recipes SET recipe_name = $1 WHERE id = $2 AND is_deleted = 0
     `, [recipe_name, req.params.id]);
 
     if (rowCount === 0) {
@@ -226,7 +226,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
 
       const { rows: itemCheck } = await client.query(`
-        SELECT id FROM items WHERE id = $1 AND is_deleted = false
+        SELECT id FROM items WHERE id = $1 AND is_deleted = 0
       `, [ingredient.item_id]);
 
       if (itemCheck.length === 0) {
@@ -275,7 +275,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const { rows: recipes } = await client.query(`
-      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = false
+      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = 0
     `, [req.params.id]);
 
     if (recipes.length === 0) {
@@ -292,7 +292,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await client.query(`
       UPDATE recipes 
-      SET is_deleted = true, deleted_at = NOW() 
+      SET is_deleted = 1, deleted_at = NOW() 
       WHERE id = $1
     `, [req.params.id]);
 
@@ -319,7 +319,7 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const { rows: recipes } = await client.query(`
-      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = true
+      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = 1
     `, [req.params.id]);
 
     if (recipes.length === 0) {
@@ -331,7 +331,7 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
 
     await client.query(`
       UPDATE recipes 
-      SET is_deleted = false, deleted_at = NULL 
+      SET is_deleted = 0, deleted_at = NULL 
       WHERE id = $1
     `, [req.params.id]);
 
@@ -363,7 +363,7 @@ router.delete('/:id/permanent', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const { rows: recipes } = await client.query(`
-      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = true
+      SELECT recipe_name FROM recipes WHERE id = $1 AND is_deleted = 1
     `, [req.params.id]);
 
     if (recipes.length === 0) {
@@ -405,7 +405,7 @@ router.post('/cleanup-archived', authenticateToken, async (req, res) => {
     const { rows: recipesToDelete } = await client.query(`
       SELECT id, recipe_name
       FROM recipes 
-      WHERE is_deleted = true 
+      WHERE is_deleted = 1 
       AND deleted_at <= NOW() - INTERVAL '30 days'
     `);
 
