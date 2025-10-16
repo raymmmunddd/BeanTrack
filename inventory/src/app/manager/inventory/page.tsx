@@ -30,13 +30,13 @@ interface Unit {
 }
 
 interface Ingredient {
-  item_id: number
+  item_id: number | string 
   item_name: string
-  quantity: number
+  quantity: number | string 
   unit: string
-  current_stock: number
-  minimum_stock: number
-  maximum_stock: number
+  current_stock: number | string 
+  minimum_stock: number | string 
+  maximum_stock: number | string 
   status?: 'healthy' | 'medium' | 'low' | 'out'
 }
 
@@ -445,16 +445,12 @@ const fetchInventory = async () => {
   }
 
 const updateRecipeIngredient = (index: number, field: string, value: any) => {
-  console.log('updateRecipeIngredient called:', { index, field, value, editingRecipe });
-  
   if (!editingRecipe) return
   const newIngredients = [...editingRecipe.ingredients]
   if (field === 'item_id') {
     const itemId = parseInt(value)
-    console.log('Looking for item with ID:', itemId);
-    const item = items.find(i => i.id === itemId)
-    console.log('Found item:', item);
-    
+    // Fix: Compare with both number and string versions
+    const item = items.find(i => i.id === itemId || i.id === String(itemId))
     if (item) {
       newIngredients[index] = {
         ...newIngredients[index],
@@ -465,7 +461,6 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
         minimum_stock: item.min_threshold,
         maximum_stock: item.max_threshold
       }
-      console.log('Updated ingredient:', newIngredients[index]);
     }
   } else if (field === 'quantity') {
     newIngredients[index] = {
@@ -477,9 +472,8 @@ const updateRecipeIngredient = (index: number, field: string, value: any) => {
     ...editingRecipe,
     ingredients: newIngredients
   })
-  console.log('New editingRecipe state:', { ...editingRecipe, ingredients: newIngredients });
 }
-
+  
 const getAvailableItemsForRecipe = (currentIndex: number) => {
     if (!editingRecipe) return items
     const selectedIds = editingRecipe.ingredients
