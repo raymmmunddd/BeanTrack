@@ -1,4 +1,4 @@
-// inventory.js - PostgreSQL Compatible
+// inventory.js - PostgreSQL Compatible - FIXED BOOLEAN COMPARISONS
 
 const express = require('express');
 const db = require('../config/database');
@@ -51,7 +51,7 @@ router.get('/', authenticateToken, async (req, res) => {
       FROM items i
       LEFT JOIN categories c ON i.category_id = c.id
       LEFT JOIN units u ON i.unit_id = u.id
-      WHERE i.is_deleted = false
+      WHERE i.is_deleted = 0
       ORDER BY i.item_name ASC
     `);
 
@@ -84,7 +84,7 @@ router.get('/archived', authenticateToken, async (req, res) => {
       FROM items i
       LEFT JOIN categories c ON i.category_id = c.id
       LEFT JOIN units u ON i.unit_id = u.id
-      WHERE i.is_deleted = true
+      WHERE i.is_deleted = 1
       ORDER BY i.deleted_at DESC
     `);
 
@@ -110,7 +110,7 @@ router.get('/recent-activity', authenticateToken, async (req, res) => {
       FROM transactions t
       LEFT JOIN items i ON t.item_id = i.id
       LEFT JOIN units un ON i.unit_id = un.id
-      WHERE t.user_id = $1 AND (i.is_deleted = false OR i.id IS NULL)
+      WHERE t.user_id = $1 AND (i.is_deleted = 0 OR i.id IS NULL)
       ORDER BY t.created_at DESC
       LIMIT 3
     `, [req.user.id]);
@@ -141,7 +141,7 @@ router.get('/recent-activity-all', authenticateToken, async (req, res) => {
       LEFT JOIN recipes r ON t.recipe_id = r.id
       LEFT JOIN units un ON i.unit_id = un.id
       LEFT JOIN users u ON t.user_id = u.id
-      WHERE (i.is_deleted = false OR i.id IS NULL) AND (r.is_deleted = false OR r.id IS NULL)
+      WHERE (i.is_deleted = 0 OR i.id IS NULL) AND (r.is_deleted = 0 OR r.id IS NULL)
       ORDER BY t.created_at DESC
       LIMIT 3
     `);
@@ -211,7 +211,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       FROM items i
       LEFT JOIN categories c ON i.category_id = c.id
       LEFT JOIN units u ON i.unit_id = u.id
-      WHERE i.id = $1 AND i.is_deleted = false
+      WHERE i.id = $1 AND i.is_deleted = 0
     `, [req.params.id]);
 
     if (result.rows.length === 0) {
@@ -252,7 +252,7 @@ router.post('/log-recipe-usage', authenticateToken, async (req, res) => {
       FROM recipe_ingredients ri
       JOIN items i ON ri.item_id = i.id
       JOIN units u ON i.unit_id = u.id
-      WHERE ri.recipe_id = $1 AND i.is_deleted = false
+      WHERE ri.recipe_id = $1 AND i.is_deleted = 0
     `, [recipe_id]);
 
     const ingredients = ingredientsResult.rows;
@@ -351,7 +351,7 @@ router.post('/log-manual-usage', authenticateToken, async (req, res) => {
         SELECT item_name, current_stock, u.name as unit
         FROM items i
         JOIN units u ON i.unit_id = u.id
-        WHERE i.id = $1 AND i.is_deleted = false
+        WHERE i.id = $1 AND i.is_deleted = 0
       `, [item.item_id]);
 
       if (stockCheckResult.rows.length === 0) {
@@ -439,7 +439,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const duplicatesResult = await client.query(`
       SELECT id FROM items 
       WHERE LOWER(TRIM(item_name)) = LOWER(TRIM($1)) 
-      AND is_deleted = false
+      AND is_deleted = 0
     `, [item_name]);
 
     if (duplicatesResult.rows.length > 0) {
@@ -512,7 +512,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       SELECT id FROM items 
       WHERE LOWER(TRIM(item_name)) = LOWER(TRIM($1)) 
       AND id != $2 
-      AND is_deleted = false
+      AND is_deleted = 0
     `, [item_name, req.params.id]);
 
     if (duplicatesResult.rows.length > 0) {
@@ -523,7 +523,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     const oldItemsResult = await client.query(`
-      SELECT * FROM items WHERE id = $1 AND is_deleted = false
+      SELECT * FROM items WHERE id = $1 AND is_deleted = 0
     `, [req.params.id]);
     
     if (oldItemsResult.rows.length === 0) {
@@ -536,7 +536,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       UPDATE items 
       SET item_name = $1, category_id = $2, unit_id = $3, current_stock = $4, 
           minimum_stock = $5, maximum_stock = $6, description = $7
-      WHERE id = $8 AND is_deleted = false
+      WHERE id = $8 AND is_deleted = 0
     `, [item_name, category_id, unit_id, current_stock, minimum_stock, maximum_stock, description || null, req.params.id]);
 
     if (result.rowCount === 0) {
@@ -577,7 +577,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const itemsResult = await client.query(`
-      SELECT * FROM items WHERE id = $1 AND is_deleted = false
+      SELECT * FROM items WHERE id = $1 AND is_deleted = 0
     `, [req.params.id]);
     
     if (itemsResult.rows.length === 0) {
@@ -593,7 +593,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await client.query(`
       UPDATE items 
-      SET is_deleted = true, deleted_at = NOW() 
+      SET is_deleted = 1, deleted_at = NOW() 
       WHERE id = $1
     `, [req.params.id]);
 
@@ -620,7 +620,7 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const itemsResult = await client.query(`
-      SELECT * FROM items WHERE id = $1 AND is_deleted = true
+      SELECT * FROM items WHERE id = $1 AND is_deleted = 1
     `, [req.params.id]);
     
     if (itemsResult.rows.length === 0) {
@@ -631,7 +631,7 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
 
     await client.query(`
       UPDATE items 
-      SET is_deleted = false, deleted_at = NULL 
+      SET is_deleted = 0, deleted_at = NULL 
       WHERE id = $1
     `, [req.params.id]);
 
@@ -663,7 +663,7 @@ router.delete('/:id/permanent', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const itemsResult = await client.query(`
-      SELECT * FROM items WHERE id = $1 AND is_deleted = true
+      SELECT * FROM items WHERE id = $1 AND is_deleted = 1
     `, [req.params.id]);
     
     if (itemsResult.rows.length === 0) {
@@ -704,7 +704,7 @@ router.post('/cleanup-archived', authenticateToken, async (req, res) => {
     const itemsToDeleteResult = await client.query(`
       SELECT id, item_name, current_stock
       FROM items 
-      WHERE is_deleted = true 
+      WHERE is_deleted = 1 
       AND deleted_at <= NOW() - INTERVAL '30 days'
     `);
 
